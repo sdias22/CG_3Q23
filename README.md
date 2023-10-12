@@ -1,113 +1,60 @@
-# ABCg
+# Projeto de Computação Gráfica
 
-![build workflow](https://github.com/hbatagelo/abcg/actions/workflows/build.yml/badge.svg)
-[![GitHub release (latest by date)](https://img.shields.io/github/v/release/hbatagelo/abcg)](https://github.com/hbatagelo/abcg/releases/latest)
+### Nome: Gabriel de Sousa Dias
+### RA: 11201720272
 
-Development framework accompanying the course [MCTA008-17 Computer Graphics](http://professor.ufabc.edu.br/~harlen.batagelo/cg/) at [UFABC](https://www.ufabc.edu.br/).
+## Descrição
 
-[Documentation](https://hbatagelo.github.io/abcg/abcg/doc/html/) | [Release notes](CHANGELOG.md)
+O projeto consiste em renderizar formas selecionadas, que podem ser por pontos, linhas, triângulos ou quadrados, que, quando renderizados consecutivamente, formam o desenho selecionado, podendo ser um círculo, triângulo ou quadrado. As formas podem ser preenchidas com uma cor única ou um degradê de cores.
 
-ABCg is a lightweight C++ framework that simplifies the development of 3D graphics applications based on [OpenGL](https://www.opengl.org), [OpenGL ES](https://www.khronos.org), [WebGL](https://www.khronos.org/webgl/), and [Vulkan](https://www.vulkan.org). It is designed for the tutorials and assignments of the course "MCTA008-17 Computer Graphics" taught at Federal University of ABC (UFABC).
+No centro da aplicação, as formas são renderizadas em um intervalo de milissegundos, que pode ser configurado pelo usuário. Ao alterar a forma de desenho ou a forma utilizada para preencher o desenho, a tela é limpa para permitir a renderização da nova forma.
 
-***
+Este projeto foi implementado com base em projetos das notas de aula, principalmente o Triângulo de Sierpinski e Triângulos Coloridos.
 
-## Main features
+## Arquivos
 
-*   Supported platforms: Linux, macOS, Windows, WebAssembly.
-*   Supported backends: OpenGL 3.3+, OpenGL ES 3.0+, WebGL 2.0 (via Emscripten), Vulkan 1.3.
-*   Applications that use the common subset of functions between OpenGL 3.3 and OpenGL ES 3.0 can be built for WebGL 2.0 using the same source code.
-*   OpenGL functions can be qualified with the `abcg::` namespace to enable throwing exceptions with descriptive GL error messages that include the source code location.
-*   Includes helper classes and functions for loading textures (using [SDL\_image](https://www.libsdl.org/projects/SDL_image/)), loading OBJ 3D models (using [tinyobjloader](https://github.com/tinyobjloader/tinyobjloader)), and compiling GLSL shaders to SPIR-V with [glslang](https://github.com/KhronosGroup/glslang).
+O arquivo `main.cpp` contém o código para configurar a tela com as dimensões de 600 x 600 pixels e chamar a aplicação.
 
-***
+Os arquivos `window.hpp` e `window.cpp` são responsáveis por controlar comportamento da janela da aplicação, nele se encontram as funções e variáveis citadas abaixo. 
 
-## Requirements
+### Variáveis
 
-The following minimum requirements are shared among all platforms:
+No código, você encontrará as seguintes variáveis:
 
-*   [CMake](https://cmake.org/) 3.21.
-*   A C++ compiler with at least partial support for C++20 (tested with GCC 12, Clang 16, MSVC 17, and emcc 3.1.42).
-*   A system with support for OpenGL 3.3 (OpenGL backend) or Vulkan 1.3 (Vulkan backend). Conformant software rasterizers such as Mesa's [Gallium llvmpipe](https://docs.mesa3d.org/drivers/llvmpipe.html) and lavapipe (post Jun 2022) are supported. Mesa's [D3D12](https://devblogs.microsoft.com/directx/directx-heart-linux/) backend on [WSL 2.0](https://docs.microsoft.com/en-us/windows/wsl/install) is supported as well.
+- `uniqueColors`: Um booleano que, se for verdadeiro, indica o uso de uma única cor para desenhar as formas; caso contrário, um degradê de cores é usado.
 
-For WebAssembly:
+- `m_viewportSize`: Armazena o tamanho da tela.
 
-*   [Emscripten](https://emscripten.org/).
-*   A browser with support for WebGL 2.0.
+- `m_timer`: Armazena o tempo em milissegundos utilizado como atraso entre a exibição das formas.
 
-For building desktop applications:
+- `m_formaDesenho`: Armazena a forma de desenho selecionada.
 
-*   [SDL](https://www.libsdl.org/) 2.0.
-*   [SDL\_image](https://www.libsdl.org/projects/SDL_image/) 2.0.
-*   [GLEW](http://glew.sourceforge.net/) 2.2.0 (required for OpenGL-based applications).
-*   [Vulkan](https://www.lunarg.com/vulkan-sdk/) 1.3 (required for Vulkan-based applications).
+- `m_forma`: Armazena a forma usada para preencher o desenho.
 
-Desktop dependencies can be resolved automatically with [Conan](https://conan.io/), but it is disabled by default. To use Conan, install Conan 1.47 or a later 1.\* version (ABCg is not compatible with Conan 2.0!) and then configure CMake with `-DENABLE_CONAN=ON`.
+- `m_colors`: Contém as cores para criar o degradê nas formas.
 
-The default renderer backend is OpenGL (CMake option `GRAPHICS_API=OpenGL`). To use the Vulkan backend, configure CMake with `-DGRAPHICS_API=Vulkan`.
+- `m_uniqueColor`: Contém a cor única utilizada nas formas.
 
-***
+- `angle` e `radius`: Utilizados para o desenho de círculos.
 
-## Installation and usage
+- `m_P`: Identifica a posição onde as formas serão desenhadas.
 
-Start by cloning the repository:
+Além disso, existem outras variáveis usadas para a renderização.
 
-    # Get abcg repo
-    git clone https://github.com/hbatagelo/abcg.git
+### Funções
 
-    # Enter the directory
-    cd abcg
+- A função `onCreate`, onde shaders são configurados, o gerador randômico é inicializado e a tela é limpa com a cor preta.
 
-Follow the instructions below to build the "Hello, World!" sample located in `abcg/examples/helloworld`.
+- A função `onPaint` cria o viewport, introduz atrasos entre as formas exibidas e inicia o programa que renderiza os shaders. De acordo com a forma selecionada, os vértices são passados para renderizar a forma.
 
-### Windows
+- A função `onPaintUI` constrói menus que incluem controles deslizantes para ajustar o atraso e um botão "Limpar" para apagar a tela. Também é possível selecionar a forma de desenho e a forma de preenchimento usando um ComboBox. A escolha de uma cor única ou um degradê é controlada por meio de uma caixa de seleção, e as opções de cores utiliza `ColorEdit3` que são alocadas em `m_colors`.
 
-*   Run `build-vs.bat` for building with the Visual Studio 2022 toolchain.
-*   Run `build.bat` for building with GCC (MinGW-w64).
+- A função `SetupModel` calcula, a cada quadro, a posição onde a forma selecionada será renderizada e envia vértices e cores para os buffers.
 
-`build-vs.bat` and `build.bat` accept two optional arguments: (1) the build type, which is `Release` by default, and (2) an extra CMake option. For example, for a `Debug` build with `-DENABLE_CONAN=ON` using VS 2022, run
+- A função `onResize` redefine o ângulo para o desenho de círculos e o tamanho de `viewportSize`, além de limpar a tela quando a tela for redimensionada.
 
-    build-vs.bat Debug -DENABLE_CONAN=ON
+- A função `onDestroy` exclui os buffers utilizados na renderização quando a aplicação é encerrada.
 
-### Linux and macOS
+## Referência
 
-Run `./build.sh`.
-
-The script accepts two optional arguments: (1) the build type, which is `Release` by default, and (2) an extra CMake option. For example, for a `Debug` build with `-DENABLE_CONAN=ON`, run
-
-    ./build.sh Debug -DENABLE_CONAN=ON
-
-### WebAssembly
-
-1.  Run `build-wasm.bat` (Windows) or `./build-wasm.sh` (Linux/macOS).
-2.  Run `runweb.bat` (Windows) or `./runweb.sh` (Linux/macOS) for setting up a local web server.
-3.  Open <http://localhost:8080/helloworld.html>.
-
-***
-
-## Docker setup
-
-ABCg can be built in a [Docker](https://www.docker.com/) container. The Dockerfile provided is based on Ubuntu 22.04 and includes Emscripten.
-
-1.  Create the Docker image (`abcg`):
-
-        sudo docker build -t abcg .
-
-2.  Create the container (`abcg_container`):
-
-        sudo docker create -it \
-          -p 8080:8080 \
-          -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
-          -e DISPLAY \
-          --name abcg_container abcg
-
-3.  Start the container:
-
-        sudo docker start -ai abcg_container
-
-    On NVIDIA GPUs, install the [NVIDIA Container Toolkit](https://github.com/NVIDIA/nvidia-docker) to allow the container to use the host's NVIDIA driver and X server. Expose the X server with `sudo xhost +local:root` before starting the container.
-
-***
-
-## License
-
-ABCg is licensed under the MIT License. See [LICENSE](https://github.com/hbatagelo/abcg/blob/main/LICENSE) for more information.
+Para execução do projeto foi utilizado a biblioteca [ABCG](https://github.com/hbatagelo/abcg).
