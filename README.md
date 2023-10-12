@@ -3,6 +3,8 @@
 ### Nome: Gabriel de Sousa Dias
 ### RA: 11201720272
 
+### [Link para Aplicação em WebAssembly](https://sdias22.github.io/CG_3Q23_Ativ1/)
+
 ## Descrição
 
 O projeto consiste em renderizar formas selecionadas, que podem ser por pontos, linhas, triângulos ou quadrados, que, quando renderizados consecutivamente, formam o desenho selecionado, podendo ser um círculo, triângulo ou quadrado. As formas podem ser preenchidas com uma cor única ou um degradê de cores.
