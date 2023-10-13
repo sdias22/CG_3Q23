@@ -80,6 +80,9 @@ void Window::onPaintUI() {
   abcg::OpenGLWindow::onPaintUI();
   {
 
+    auto colorEditFlags{ImGuiColorEditFlags_NoTooltip |
+                        ImGuiColorEditFlags_NoPicker};
+
     // Tamanho e Posição do Menu de Delay + Limpar a janela
     auto const widgetSizeL{ImVec2(165, 65)};
     ImGui::SetNextWindowSize(widgetSizeL);
@@ -169,7 +172,7 @@ void Window::onPaintUI() {
     if (enabled || m_forma == "Ponto") {
       ImGui::Text("Selecione uma cor única:");
       ImGui::PushItemWidth(215);
-      ImGui::ColorEdit3("Cor", &m_uniqueColor.at(0).x, m_uniqueColor.at(0).x);
+      ImGui::ColorEdit3("Cor", &m_uniqueColor.at(0).x, colorEditFlags);
       ImGui::PopItemWidth();
 
       m_uniqueColor.at(1) = m_uniqueColor.at(0);
@@ -182,8 +185,8 @@ void Window::onPaintUI() {
     } else if (m_forma == "Linha") {
       ImGui::Text("Selecione cores diferentes:");
       ImGui::PushItemWidth(215);
-      ImGui::ColorEdit3("Cor 1", &m_colors.at(0).x, m_colors.at(0).x);
-      ImGui::ColorEdit3("Cor 2", &m_colors.at(1).x, m_colors.at(1).x);
+      ImGui::ColorEdit3("Cor 1", &m_colors.at(0).x, colorEditFlags);
+      ImGui::ColorEdit3("Cor 2", &m_colors.at(1).x, colorEditFlags);
       ImGui::PopItemWidth();
 
       // Configurar para cores diferentes
@@ -191,8 +194,8 @@ void Window::onPaintUI() {
     } else if (m_forma == "Triangulo") {
       ImGui::Text("Selecione cores diferentes:");
       ImGui::PushItemWidth(215);
-      ImGui::ColorEdit3("Cor 1", &m_colors.at(0).x, m_colors.at(0).x);
-      ImGui::ColorEdit3("Cor 2", &m_colors.at(1).x, m_colors.at(1).x);
+      ImGui::ColorEdit3("Cor 1", &m_colors.at(0).x, colorEditFlags);
+      ImGui::ColorEdit3("Cor 2", &m_colors.at(1).x, colorEditFlags);
       ImGui::PopItemWidth();
 
       // Configurar para cores diferentes
@@ -200,8 +203,8 @@ void Window::onPaintUI() {
     } else if (m_forma == "Quadrado") {
       ImGui::Text("Selecione cores diferentes:");
       ImGui::PushItemWidth(215);
-      ImGui::ColorEdit3("Cor 1", &m_colors.at(0).x, m_colors.at(0).x);
-      ImGui::ColorEdit3("Cor 2", &m_colors.at(1).x, m_colors.at(1).x);
+      ImGui::ColorEdit3("Cor 1", &m_colors.at(0).x, colorEditFlags);
+      ImGui::ColorEdit3("Cor 2", &m_colors.at(1).x, colorEditFlags);
       ImGui::PopItemWidth();
 
       // Configurar para cores diferentes
@@ -227,7 +230,7 @@ void Window::onPaintUI() {
 
       if (m_forma == "Triangulo") {
         ImGui::PushItemWidth(215);
-        ImGui::ColorEdit3("Cor 3", &m_colors.at(2).x, m_colors.at(2).x);
+        ImGui::ColorEdit3("Cor 3", &m_colors.at(2).x, colorEditFlags);
         ImGui::PopItemWidth();
 
         // Configurar para cores diferentes
@@ -235,8 +238,8 @@ void Window::onPaintUI() {
 
       } else if (m_forma == "Quadrado") {
         ImGui::PushItemWidth(215);
-        ImGui::ColorEdit3("Cor 3", &m_colors.at(2).x, m_colors.at(2).x);
-        ImGui::ColorEdit3("Cor 4", &m_colors.at(3).x, m_colors.at(3).x);
+        ImGui::ColorEdit3("Cor 3", &m_colors.at(2).x, colorEditFlags);
+        ImGui::ColorEdit3("Cor 4", &m_colors.at(3).x, colorEditFlags);
         ImGui::PopItemWidth();
 
         // Configurar para cores diferentes
