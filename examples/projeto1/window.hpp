@@ -60,6 +60,9 @@ private:
   // Usado para marcar a posição da forma
   glm::vec2 m_P{};
 
+  // Contador para limpar a tela
+  int lmp = 0;
+
   void setupModel();
 };
 

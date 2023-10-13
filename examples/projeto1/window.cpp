@@ -51,6 +51,14 @@ void Window::onPaint() {
 
   setupModel();
 
+  // Contador para limpar a tela
+  if (lmp == 2) {
+    abcg::glClear(GL_COLOR_BUFFER_BIT);
+    lmp = 0;
+  } else if (lmp == 1) {
+    lmp += 1;
+  }
+
   // Tempo entre uma forma e outra ser mostrada
   if (m_timer.elapsed() < m_tempo)
     return;
@@ -121,7 +129,7 @@ void Window::onPaintUI() {
         bool const isSelected{currentInd == ind};
         if (ImGui::Selectable(comboFormaD.at(ind), isSelected)) {
           currentInd = ind;
-          abcg::glClear(GL_COLOR_BUFFER_BIT);
+          lmp = 1;
         }
         if (isSelected)
           ImGui::SetItemDefaultFocus();
@@ -140,7 +148,7 @@ void Window::onPaintUI() {
         bool const isSelected{currentIndex == index};
         if (ImGui::Selectable(comboItems.at(index), isSelected)) {
           currentIndex = index;
-          abcg::glClear(GL_COLOR_BUFFER_BIT);
+          lmp = 1;
         }
         if (isSelected)
           ImGui::SetItemDefaultFocus();
