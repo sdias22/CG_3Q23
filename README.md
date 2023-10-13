@@ -41,6 +41,8 @@ No código, você encontrará as seguintes variáveis:
 
 - `m_P`: Identifica a posição onde as formas serão desenhadas.
 
+- `lmp`: Utilizado para limpar a tela quando utilizado o combobox (evitar que fique aparecendo na tela após ser oculto).
+
 Além disso, existem outras variáveis usadas para a renderização.
 
 ### Funções
