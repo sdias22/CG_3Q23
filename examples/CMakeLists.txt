@@ -1,1 +1,1 @@
-add_subdirectory(projeto1)
+add_subdirectory(chessboard3D)
