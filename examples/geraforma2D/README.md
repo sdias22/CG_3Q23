@@ -1,4 +1,6 @@
-# Projeto de Computação Gráfica
+# Gerar Forma 2D
+
+### Projeto de Computação Gráfica
 
 ### Nome: Gabriel de Sousa Dias
 ### RA: 11201720272
