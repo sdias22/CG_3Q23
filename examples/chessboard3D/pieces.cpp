@@ -46,6 +46,7 @@ void Pieces::onCreate(GLuint program, Input input) {
   // Bind vertex attributes
   auto const positionAttribute{
       abcg::glGetAttribLocation(program, "inPosition")};
+
   if (positionAttribute >= 0) {
     abcg::glEnableVertexAttribArray(positionAttribute);
     abcg::glVertexAttribPointer(positionAttribute, 3, GL_FLOAT, GL_FALSE,
@@ -85,7 +86,7 @@ void Pieces::onPaint(glm::vec3 posGround, glm::vec4 colorPiece, Input input) {
   }
   if (input == Input::cavalo) {
     model = glm::rotate(model, glm::radians(270.0f), glm::vec3(1, 0, 0));
-    if (colorPiece == gray) {
+    if (colorPiece == white) {
       model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0, 0, 1));
     }
     model = glm::scale(model, glm::vec3(0.5f));
@@ -96,7 +97,7 @@ void Pieces::onPaint(glm::vec3 posGround, glm::vec4 colorPiece, Input input) {
   }
   if (input == Input::peao) {
     model = glm::rotate(model, glm::radians(270.0f), glm::vec3(1, 0, 0));
-    if (colorPiece == gray) {
+    if (colorPiece == white) {
       model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0, 0, 1));
     }
     model = glm::scale(model, glm::vec3(0.3f));
