@@ -1,70 +1,176 @@
-# Projeto de Computação Gráfica
-
+# Chessboard 3D
+### Projeto de Computação Gráfica
 ### Nome: Gabriel de Sousa Dias
 ### RA: 11201720272
-
-### [Link para Aplicação em WebAssembly](https://sdias22.github.io/CG_3Q23_Ativ1/)
-
+### [Link para Aplicação em WebAssembly](https://sdias22.github.io/CG-WebAssembly/ChessBoard3D/)
+### [Link para o Vídeo](https://youtu.be/wystuZoPspU)
 ## Descrição
-
-O projeto consiste em renderizar formas selecionadas, que podem ser por pontos, linhas, triângulos ou quadrados, que, quando renderizados consecutivamente, formam o desenho selecionado, podendo ser um círculo, triângulo ou quadrado. As formas podem ser preenchidas com uma cor única ou um degradê de cores.
-
-No centro da aplicação, as formas são renderizadas em um intervalo de milissegundos, que pode ser configurado pelo usuário. Ao alterar a forma de desenho ou a forma utilizada para preencher o desenho, a tela é limpa para permitir a renderização da nova forma.
-
-Este projeto foi implementado com base em projetos das notas de aula, principalmente o Triângulo de Sierpinski e Triângulos Coloridos.
-
-## Arquivos
-
-O arquivo `main.cpp` contém o código para configurar a tela com as dimensões de 600 x 600 pixels e chamar a aplicação.
-
-Os arquivos `window.hpp` e `window.cpp` são responsáveis por controlar comportamento da janela da aplicação, nele se encontram as funções e variáveis citadas abaixo. 
-
-### Variáveis
-
-No código, você encontrará as seguintes variáveis:
-
-- `uniqueColors`: Um booleano que, se for verdadeiro, indica o uso de uma única cor para desenhar as formas; caso contrário, um degradê de cores é usado.
-
-- `m_viewportSize`: Armazena o tamanho da tela.
-
-- `m_timer`: Armazena o tempo em milissegundos utilizado como atraso entre a exibição das formas.
-
-- `m_formaDesenho`: Armazena a forma de desenho selecionada.
-
-- `m_forma`: Armazena a forma usada para preencher o desenho.
-
-- `m_colors`: Contém as cores para criar o degradê nas formas.
-
-- `m_uniqueColor`: Contém a cor única utilizada nas formas.
-
-- `angle` e `radius`: Utilizados para o desenho de círculos.
-
-- `m_P`: Identifica a posição onde as formas serão desenhadas.
-
-- `lmp`: Utilizado para limpar a tela quando utilizado o combobox (evitar que fique aparecendo na tela após ser oculto).
-
-Além disso, existem outras variáveis usadas para a renderização.
-
-### Funções
-
-- A função `onCreate`, onde shaders são configurados, o gerador randômico é inicializado e a tela é limpa com a cor preta para iniciar a aplicação.
-
-- A função `onPaint` atualiza o viewport com as coordenadas normalizadas, também introduz atrasos entre as formas exibidas utilizando a variável `m_timer` e inicia o programa que renderiza os shaders. Por fim, de acordo com a forma selecionada, utiliza o `glDrawArrays` para renderizar a forma dado os vértices passados no SetupModel.
-
-- A função `onPaintUI` constrói menus que incluem controles deslizantes para ajustar o atraso entre um forma e outra e um botão "Limpar" para limpar a tela. Também é possível selecionar a forma de desenho e a forma de preenchimento usando um ComboBox. A escolha de utilizar uma cor única ou um degradê é controlada por meio de uma caixa de seleção, e as opções de cores utilizam `ColorEdit3` que são alocadas em `m_colors`, no qual a exibição das opções de cores dependem da forma selecionada e na marcação do CheckBox `enable`.
-
-- A função `SetupModel` calcula, a cada quadro, a posição onde a forma selecionada será renderizada dado a forma de desenho e envia vértices e cores para os buffers.
-
-  No cálculo do desenho do circulo é utilizado o ângulo que é alterado no sentido horário, além de utilizar um raio que é sorteado randômico, entre 0.01 e 0.5, a cada quadro.
-
-  Já para o quadrado, as coordenadas (x, y) são sorteadas randômicamente entre os valores -0.5 e 0.5. Por fim o triângulo, tem a coordenada y sorteada randômicamente e baseado nessa coordenada é calcula a coordenada x, para cada redução de -0.1 em y temos os limites do eixo x que podem ser escolhidos, calculados por ((y / 2) - 0.25) para manter a simetria e a formação do triângulos.
-
-  A partir disso montados as posições para cada tipo de forma com 0.1 de espaçamento entre os vértices. Finalmente atualizamos os buffers para renderização.
-
-- A função `onResize` redefine o ângulo para o desenho de círculos e o tamanho de `viewportSize`, além de limpar a tela quando a mesma for redimensionada.
-
-- A função `onDestroy` exclui os buffers utilizados na renderização quando a aplicação é encerrada.
-
+O projeto trata-se de exibir um tabuleiro de xadrez em 3D, no qual o usuário tem o controle para navegar pelo tabuleiro e poder visualizá-lo de várias posições.
+### pieces.vert
+```
+#version 300 es
+layout(location = 0) in vec3 inPosition;
+uniform vec4 color;
+uniform mat4 modelMatrix;
+uniform mat4 viewMatrix;
+uniform mat4 projMatrix;
+out vec4 fragColor;
+void main() {
+  vec4 posEyeSpace = viewMatrix * modelMatrix * vec4(inPosition, 1);
+  fragColor = color;
+  gl_Position = projMatrix * posEyeSpace;
+}
+```
+Equivalente ao apresentado no exemplo de aula [lookat](https://hbatagelo.github.io/cg/lookatproject.html#lookat.vert), entretanto é alterado para que mantenha a cor independente da distância da câmera.
+### pieces.frag
+```
+#version 300 es
+precision mediump float;
+in vec4 fragColor;
+out vec4 outColor;
+void main() {
+  if (gl_FrontFacing) {
+    outColor = fragColor;
+  } else {
+    outColor = fragColor - 0.3f;
+  }
+}
+```
+Segue em linha com o fragment shader apresentando em aula, sendo alterado apenas a última linha no qual é feita uma redução de 0.3 na intensidade original
+### main.cpp
+```
+#include "window.hpp"
+int main(int argc, char **argv) {
+  try {
+    abcg::Application app(argc, argv);
+    Window window;
+    window.setOpenGLSettings({.samples = 4});
+    window.setWindowSettings({
+        .width = 600,
+        .height = 600,
+        .title = "ChessBoard 3D",
+    });
+    app.run(window);
+  } catch (std::exception const &exception) {
+    fmt::print(stderr, "{}\n", exception.what());
+    return -1;
+  }
+  return 0;
+}
+```
+Segue o padrão, onde a única mudanã é o título da janela
+### camera.hpp
+Em relação ao código exemplificado em aula [camera.hpp](https://hbatagelo.github.io/cg/lookatproject.html#camera.hpp) é acrescentado as funções de up e rotate, que respectivamente, são utilizadas para alterar a altura da câmera e rotacionar/inclinar a câmera.
+```
+void up(float speed);
+void rotate(float speed);
+```
+### camera.cpp
+Segue as funções citadas acima:
+```
+void Camera::up(float speed) {
+  m_at += m_up * speed;
+  m_eye += m_up * speed;
+  computeViewMatrix();
+}
+void Camera::rotate(float speed) {
+  glm::mat4 transform{1.0f};
+  // Rotate camera around its local z axis
+  auto const forward{glm::normalize(m_at - m_eye)};
+  transform = glm::rotate(transform, speed, forward);
+  m_up = transform * glm::vec4(m_up, 0.0f);
+  computeViewMatrix();
+}
+```
+Onde é utilizado a variável m_up para alterar a posição m_at e m_eye, que são responsáveis, respectivamente, por controlar a posição para onde a câmera está olhando e a posição da câmera.
+### ground.hpp
+Equivalente ao utilizado em aula [ground.hpp](https://hbatagelo.github.io/cg/lookatproject.html#ground.hpp)
+### ground.cpp
+Em relação ao utilizado em aula, é alterado a quantidade de quadrados em `auto const N{4};`, e é feito a translação em `model = glm::translate(model, glm::vec3(x * 0.2f, -0.1f, z * 0.2f));` e a escala é reduzida para melhor visualização: `model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));`
+```
+void Ground::onPaint() {
+  abcg::glBindVertexArray(m_VAO);
+  // Draw a grid of 2N x 2N tiles on the xz plane, centered around the
+  // origin
+  auto const N{4};
+  for (auto const z : iter::range(-N, N)) {
+    for (auto const x : iter::range(-N, N)) {
+      // Set model matrix as a translation matrix
+      glm::mat4 model{1.0f};
+      model = glm::translate(model, glm::vec3(x * 0.2f, -0.1f, z * 0.2f));
+      model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));
+      abcg::glUniformMatrix4fv(m_modelMatrixLoc, 1, GL_FALSE, &model[0][0]);
+      // Set color (checkerboard pattern)
+      auto const whiteOrBlack{(z + x) % 2 == 0 ? 1.0f : 0.1f};
+      abcg::glUniform4f(m_colorLoc, whiteOrBlack, whiteOrBlack, whiteOrBlack,
+                        1.0f);
+      abcg::glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    }
+  }
+  abcg::glBindVertexArray(0);
+}
+```
+### piece.hpp
+```enum class Input { rei, rainha, bispo, cavalo, torre, peao };
+struct Piece {
+  Input m_input{Input::rei};
+};
+```
+Essa primeira parte é responsável por criar um estrutura que armazena as possível peças do jogo de xadrez, utilizado para fazer algumas configurações de rotação e escala, além de buscar o arquivo .obj de cada peça.
+```
+void onCreate(GLuint program, Input input);
+```
+onCreate é responsável por chamar a função `loadObj` dado a peça e criar o VAO fazer o bind do VBO/EBO.
+```
+void onPaint(glm::vec3 posGround, glm::vec4 colorPiece, Input input);
+```
+onPaint é responsável por posicionar, rotacionar e ajustar a escala das peças no tabuleiro. Posteriormente realizar o desenho na tela das peças. Para isso recebe como argumentos posGround que é um vetor que passa quando deve ser transladado (usado para posicionar) no tabuleiro, o argumento colorPiece que passa a cor que deve ser utilizada para pintar a peça e por fim input que diz qual é a peça a ser desenhada.
+```
+void onDestroy();
+```
+onDestroy é responsável por deletar o VAO, VBO e EBO.
+```
+void loadObj(std::string_view path);
+void createBuffers()
+standardize()
+```
+Equivalente a apresentada nas aulas.
+### piece.cpp
+Na função onPaint gostaria de destacar o processo de rotacionar, alterar a escala e a etapa de translação para cada peça que é demonstrada abaixo:
+```
+glm::mat4 model{1.0f};
+model = glm::translate(model, posGround);
+if (input == Input::rei) {
+  model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0, 1, 0));
+  model = glm::scale(model, glm::vec3(0.6f));
+}
+if (input == Input::rainha) {
+  model = glm::rotate(model, glm::radians(90.0f), glm::vec3(0, 1, 0));
+  model = glm::scale(model, glm::vec3(0.5f));
+}
+if (input == Input::bispo) {
+  model = glm::rotate(model, glm::radians(270.0f), glm::vec3(1, 0, 0));
+  model = glm::rotate(model, glm::radians(90.0f), glm::vec3(0, 0, 1));
+  model = glm::scale(model, glm::vec3(0.5f));
+}
+if (input == Input::cavalo) {
+  model = glm::rotate(model, glm::radians(270.0f), glm::vec3(1, 0, 0));
+  if (colorPiece == gray) {
+    model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0, 0, 1));
+  }
+  model = glm::scale(model, glm::vec3(0.5f));
+}
+if (input == Input::torre) {
+  model = glm::rotate(model, glm::radians(90.0f), glm::vec3(0, 1, 0));
+  model = glm::scale(model, glm::vec3(0.5f));
+}
+if (input == Input::peao) {
+  model = glm::rotate(model, glm::radians(270.0f), glm::vec3(1, 0, 0));
+  if (colorPiece == gray) {
+    model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0, 0, 1));
+  }
+  model = glm::scale(model, glm::vec3(0.3f));
+}
+```
 ## Referência
-
 Para execução do projeto foi utilizado a biblioteca [ABCG](https://github.com/hbatagelo/abcg).
