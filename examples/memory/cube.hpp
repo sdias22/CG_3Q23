@@ -12,6 +12,7 @@ public:
   void onCreate(GLuint program);
   void onPaint();
   void onUpdate();
+  void onState();
   void onDestroy();
   bool onGameOver();
   bool onSelect(int pos);

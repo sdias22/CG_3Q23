@@ -12,7 +12,7 @@ public:
   void onCreate(GLuint program);
   void onPaint();
   void onUpdate();
-  void onSelect(bool sel, float move);
+  void onSelect(bool sel);
   void onxMove(float move);
   void onzMove(float move);
   void onDestroy();
@@ -52,7 +52,7 @@ private:
 
   glm::vec4 m_colorCurrent{gray};
 
-  glm::vec3 m_pInicial{0.0f, 0.35f, 0.0f};
+  glm::vec3 m_pInicial{0.0f, 0.30f, 0.0f};
 };
 
 #endif

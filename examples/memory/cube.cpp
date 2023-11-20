@@ -77,7 +77,7 @@ void Cube::onCreate(GLuint program) {
       int p = i * 8 + j;
       float z = 0.2f * i;
       float x = 0.2f * j;
-      m_cubes[p].m_status = StatusCube::off;
+      m_cubes[p].m_status = StatusCube::on;
       m_cubes[p].m_position =
           glm::vec3((m_pInicial.x + x), m_pInicial.y, (m_pInicial.z + z));
       m_cubes[p].m_color = black;
@@ -143,6 +143,12 @@ void Cube::onUpdate() {
     } else {
       m_cubes[i].m_scale = glm::vec3(0.5f, 0.25f, 0.5f);
     }
+  }
+}
+
+void Cube::onState() {
+  for (size_t i = 0; i < 64; i++) {
+    m_cubes[i].m_status = StatusCube::off;
   }
 }
 

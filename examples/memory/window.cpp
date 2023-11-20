@@ -1,16 +1,15 @@
 #include "window.hpp"
 
-#include <iostream>
 #include <unordered_map>
 
 void Window::onEvent(SDL_Event const &event) {
   if (event.type == SDL_KEYDOWN) {
     if (event.key.keysym.sym == SDLK_w) {
-      m_select.onzMove(0.2f);
+      m_select.onzMove(-0.2f);
     }
 
     if (event.key.keysym.sym == SDLK_s) {
-      m_select.onzMove(-0.2f);
+      m_select.onzMove(0.2f);
     }
 
     if (event.key.keysym.sym == SDLK_a) {
@@ -22,13 +21,13 @@ void Window::onEvent(SDL_Event const &event) {
     }
 
     if (event.key.keysym.sym == SDLK_SPACE) {
-      m_select.onSelect(true, -0.075f);
+      m_select.onSelect(true);
       m_play = PlayStatus::select;
     }
   }
   if (event.type == SDL_KEYUP) {
-    if (event.key.keysym.sym == SDLK_SPACE && m_ymove > 0) {
-      m_select.onSelect(false, 0.075f);
+    if (event.key.keysym.sym == SDLK_SPACE) {
+      m_select.onSelect(false);
     }
   }
 }
@@ -62,7 +61,7 @@ void Window::onCreate() {
   m_modelMatrixLocation = abcg::glGetUniformLocation(m_program, "modelMatrix");
   m_colorLocation = abcg::glGetUniformLocation(m_program, "color");
 
-  m_game = GameStatus::playing;
+  m_game = GameStatus::start;
 }
 
 void Window::onPaint() {
@@ -83,7 +82,7 @@ void Window::onPaint() {
   // Desenha o tabuleiro
   m_ground.onPaint();
 
-  if (m_game == GameStatus::playing) {
+  if (m_game != GameStatus::gameover) {
     // Desenha as peças e seleção
     m_select.onPaint();
     m_cube.onPaint();
@@ -94,10 +93,31 @@ void Window::onPaint() {
 
 void Window::onUpdate() {
   onGame();
+  if (m_game == GameStatus::gameover) {
+    return;
+  }
 
   m_camera.onUpdate(m_camSelect);
 
-  if (m_play == PlayStatus::select) {
+  if (m_game == GameStatus::start) {
+    m_cube.onUpdate();
+    m_select.onUpdate();
+
+    if (m_timer.elapsed() < m_tempo * 5.0f)
+      return;
+
+    m_cube.onState();
+
+    m_timer.restart();
+    while (m_timer.elapsed() < m_tempo * 1.5f)
+      ;
+    m_timer.restart();
+
+    m_cube.onUpdate();
+
+    m_game = GameStatus::playing;
+
+  } else if (m_play == PlayStatus::select) {
 
     m_positionCurrent = m_select.m_positionCurrent;
 
@@ -135,8 +155,8 @@ void Window::onUpdate() {
     select[1] = -1;
     m_play = PlayStatus::moving;
 
-  } else {
-    m_select.onSelect(false, 0.0f);
+  } else if (m_play == PlayStatus::moving) {
+    m_select.onSelect(false);
     m_cube.onUpdate();
     m_select.onUpdate();
   }
@@ -154,8 +174,7 @@ void Window::onPaintUI() {
 
   // ComboBox para escolha da camera
   static std::size_t currentInd{};
-  std::vector<std::string> const comboCam{
-      "Vista de Cima", "CAM1", "CAM2", "CAM3", "CAM4", "CAM5", "CAM6"};
+  std::vector<std::string> const comboCam{"Visão Lateral", "Vista Superior"};
 
   if (ImGui::BeginCombo("Camera", comboCam.at(currentInd).c_str())) {
     for (auto ind{0U}; ind < comboCam.size(); ++ind) {
@@ -171,38 +190,46 @@ void Window::onPaintUI() {
   m_camSelect = currentInd;
 
   // Botão para limpar a tela
-  if (ImGui::Button("Restart", ImVec2(150, 25))) {
+  if (ImGui::Button("Restart", ImVec2(190, 25))) {
     m_restart = true;
   }
 
   ImGui::End();
 
   // Tamanho e Posição do texto
-  auto const widgetSizeT{ImVec2(210, 45)};
+  auto const widgetSizeT{ImVec2(190, 60)};
   ImGui::SetNextWindowPos(ImVec2((m_viewportSize.x - widgetSizeT.x) / 2,
                                  (m_viewportSize.y - widgetSizeT.y) / 2));
   ImGui::SetNextWindowSize(widgetSizeT);
 
-  if (m_game == GameStatus::gameover) {
-
+  if (m_game == GameStatus::gameover && !m_restart) {
     // Inicializa o Menu
     ImGui::Begin("Texto", nullptr, windowFlags);
 
     ImGui::Text("Congratulations!\n");
     ImGui::Text("You need: %d tries!", tries);
     ImGui::End();
+  } else if (m_game == GameStatus::start) {
+    // Inicializa o Menu
+    ImGui::Begin("Texto", nullptr, windowFlags);
+
+    ImGui::Text("O jogo está começando!\nMemorize as cores!\n");
+    ImGui::End();
+  } else if (m_restart) {
+    // Inicializa o Menu
+    ImGui::Begin("Texto", nullptr, windowFlags);
+
+    ImGui::Text("O jogo está sendo\nreiniciado!\n");
+    ImGui::End();
   }
 }
 
 void Window::onGame() {
-  if (m_restart) {
-    onRestart();
-  } else if (m_cube.onGameOver()) {
+  if (m_restart || (m_cube.onGameOver() && m_game != GameStatus::start)) {
     m_game = GameStatus::gameover;
-    m_timerRestart.restart();
-    while (m_timerRestart.elapsed() < m_tempo * 1.5)
-      ;
-    m_timerRestart.restart();
+    if (m_timer.elapsed() < m_tempo * 7.5)
+      return;
+    m_timer.restart();
     onRestart();
   }
 }
@@ -211,6 +238,10 @@ void Window::onRestart() {
   abcg::glClearColor(0, 0, 0, 1);
   m_restart = false;
   tries = 0;
+  posSelect = 0;
+  select[0] = -1;
+  select[1] = -1;
+
   onDestroy();
   onCreate();
 }

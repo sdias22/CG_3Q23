@@ -14,38 +14,15 @@ void Camera::computeViewMatrix() {
 }
 
 void Camera::onCreate() {
-  m_cameras[0] = CameraPosition{"Vista de Cima", glm::vec3(0.0f, 1.0f, 0.0005f),
-                                glm::vec3(0.0f, -1.0f, 0.0f),
-                                glm::vec3(0.0f, 1.0f, 0.0f), 90.0f};
-
-  m_cameras[1] =
-      CameraPosition{"CAM1", glm::vec3(-0.06617f, 0.588165f, 2.19079f),
+  m_cameras[0] =
+      CameraPosition{"Visão Lateral", glm::vec3(-0.06617f, 0.588165f, 2.19079f),
                      glm::vec3(-0.06617f, 0.588165f, 0.690789f),
                      glm::vec3(0.0f, 1.0f, 0.0f), 60.0f};
 
-  m_cameras[2] =
-      CameraPosition{"CAM2", glm::vec3(2.2081f, 0.591345f, -0.0981149f),
-                     glm::vec3(0.708111f, 0.591345f, -0.105421f),
-                     glm::vec3(0.0f, 1.0f, 0.0f), 60.0f};
-
-  m_cameras[3] =
-      CameraPosition{"CAM3", glm::vec3(-0.110116f, 0.554741f, -2.32302f),
-                     glm::vec3(-0.0911373f, 0.554741f, -0.823134f),
-                     glm::vec3(0.0f, 1.0f, 0.0f), 60.0f};
-
-  m_cameras[4] =
-      CameraPosition{"CAM4", glm::vec3(-2.31217f, 0.554741f, -0.0896668f),
-                     glm::vec3(-0.812174f, 0.554741f, -0.0918008f),
-                     glm::vec3(0.0f, 1.0f, 0.0f), 60.0f};
-
-  m_cameras[5] =
-      CameraPosition{"CAM5", glm::vec3(-1.49516f, 0.438277f, 1.49457f),
-                     glm::vec3(-0.499002f, 0.438277f, 0.373111f),
-                     glm::vec3(0.0f, 1.0f, 0.0f), 60.0f};
-  m_cameras[6] =
-      CameraPosition{"CAM6", glm::vec3(1.30522f, 0.379888f, -1.65208f),
-                     glm::vec3(0.300989f, 0.379888f, -0.53785f),
-                     glm::vec3(0.0f, 1.0f, 0.0f), 60.0f};
+  m_cameras[1] = CameraPosition{
+      "Vista de Cima", glm::vec3(-0.0843976f, 1.1297f, 0.992652f),
+      glm::vec3(-0.0840492f, 0.108946f, -0.106467f),
+      glm::vec3(-0.0175263f, 0.732629f, -0.680398f), 90.0f};
 
   m_eyeAt_Current = m_cameras[0].m_eye;
   m_at_Current = m_cameras[0].m_at;

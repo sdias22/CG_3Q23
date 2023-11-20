@@ -58,7 +58,7 @@ void Select::onPaint() {
   glm::mat4 model{1.0f};
 
   model = glm::translate(model, m_select.m_position);
-  model = glm::scale(model, glm::vec3(0.5f));
+  model = glm::scale(model, glm::vec3(0.45f));
 
   if (m_select.m_position.z > -0.2f) {
     // model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0, 1, 0));
@@ -89,27 +89,31 @@ void Select::onUpdate() {
   }
 }
 
-void Select::onSelect(bool sel, float move) {
+void Select::onSelect(bool sel) {
   if (sel) {
     m_select.m_status = StatusSelect::select;
     m_select.m_color = yellow;
   } else {
     m_select.m_status = StatusSelect::moving;
   }
-  if (m_select.m_position.y < 0.25f) {
+}
+
+void Select::onxMove(float move) {
+  if (m_select.m_position.x + move >= -0.8f &&
+      m_select.m_position.x + move <= 0.6f) {
     m_select.m_position =
-        glm::vec3(m_select.m_position.x, m_select.m_position.y + move,
+        glm::vec3(m_select.m_position.x + move, m_select.m_position.y,
                   m_select.m_position.z);
   }
 }
 
-void Select::onxMove(float move) {
-  m_select.m_position = glm::vec3(m_select.m_position.x + move,
-                                  m_select.m_position.y, m_select.m_position.z);
-}
 void Select::onzMove(float move) {
-  m_select.m_position = glm::vec3(m_select.m_position.x, m_select.m_position.y,
-                                  m_select.m_position.z + move);
+  if (m_select.m_position.z + move >= -0.8f &&
+      m_select.m_position.z + move <= 0.6f) {
+    m_select.m_position =
+        glm::vec3(m_select.m_position.x, m_select.m_position.y,
+                  m_select.m_position.z + move);
+  }
 }
 
 void Select::loadObj(std::string_view path) {
@@ -203,7 +207,7 @@ void Select::standardize() {
 
   // Center and scale
   auto const center{(min + max) / 2.0f};
-  auto const scaling{0.65f / glm::length(max - min)};
+  auto const scaling{0.5f / glm::length(max - min)};
   for (auto &vertex : m_vertices) {
     vertex.position = (vertex.position - center) * scaling;
   }

@@ -7,7 +7,7 @@
 #include "ground.hpp"
 #include "select.hpp"
 
-enum class GameStatus { playing, gameover };
+enum class GameStatus { start, playing, gameover };
 
 enum class PlayStatus { moving, select, decision };
 

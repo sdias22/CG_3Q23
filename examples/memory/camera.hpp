@@ -33,7 +33,7 @@ private:
   glm::vec3 m_up_Current;
   float m_angle_Current;
 
-  CameraPosition m_cameras[7];
+  CameraPosition m_cameras[2];
 
   // Matrix to change from world space to camera space
   glm::mat4 m_viewMatrix;
