@@ -1,15 +1,21 @@
 #include "Select.hpp"
 
+#include <iostream>
 #include <unordered_map>
 
 // Explicit specialization of std::hash for Vertex
 template <> struct std::hash<Vertex> {
   size_t operator()(Vertex const &vertex) const noexcept {
     auto const h1{std::hash<glm::vec3>()(vertex.position)};
-    return h1;
+    auto const h2{std::hash<glm::vec3>()(vertex.normal)};
+    return abcg::hashCombine(h1, h2);
   }
 };
 
+/*
+  Cria o objeto de Seleção (VAO, VBO e EBO) e atualiza a cor, posição e status
+do objeto
+*/
 void Select::onCreate(GLuint program) {
   auto const assetsPath{abcg::Application::getAssetsPath()};
   loadObj(assetsPath + "select.obj");
@@ -28,7 +34,6 @@ void Select::onCreate(GLuint program) {
   // Bind vertex attributes
   auto const positionAttribute{
       abcg::glGetAttribLocation(program, "inPosition")};
-
   if (positionAttribute >= 0) {
     abcg::glEnableVertexAttribArray(positionAttribute);
     abcg::glVertexAttribPointer(positionAttribute, 3, GL_FLOAT, GL_FALSE,
@@ -40,42 +45,63 @@ void Select::onCreate(GLuint program) {
   m_projMatrixLocation = abcg::glGetUniformLocation(program, "projMatrix");
   m_modelMatrixLocation = abcg::glGetUniformLocation(program, "modelMatrix");
   m_colorLocation = abcg::glGetUniformLocation(program, "color");
+  m_normalMatrixLocation = abcg::glGetUniformLocation(program, "normalMatrix");
+
+  m_KaLocation = abcg::glGetUniformLocation(program, "Ka");
+  m_KdLocation = abcg::glGetUniformLocation(program, "Kd");
+  m_KsLocation = abcg::glGetUniformLocation(program, "Ks");
 
   // End of binding
   abcg::glBindBuffer(GL_ARRAY_BUFFER, 0);
   abcg::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_EBO);
   abcg::glBindVertexArray(0);
 
+  // Inicializa o m_select
   m_select.m_status = StatusSelect::moving;
   m_select.m_position = m_pInicial;
   m_select.m_color = gray;
 }
 
+// Desenha na tela a objeto de seleção
 void Select::onPaint() {
-
   abcg::glBindVertexArray(m_VAO);
+
+  // Set uniform variables for the current model
+  abcg::glUniformMatrix4fv(m_modelMatrixLocation, 1, GL_FALSE,
+                           &m_modelMatrix[0][0]);
+
+  auto const modelViewMatrix{glm::mat3(m_viewMatrix * m_modelMatrix)};
+  auto const normalMatrix{glm::inverseTranspose(modelViewMatrix)};
+  abcg::glUniformMatrix3fv(m_normalMatrixLocation, 1, GL_FALSE,
+                           &normalMatrix[0][0]);
 
   glm::mat4 model{1.0f};
 
   model = glm::translate(model, m_select.m_position);
   model = glm::scale(model, glm::vec3(0.45f));
 
-  if (m_select.m_position.z > -0.2f) {
-    // model = glm::rotate(model, glm::radians(180.0f), glm::vec3(0, 1, 0));
-  }
-
   abcg::glUniformMatrix4fv(m_modelMatrixLocation, 1, GL_FALSE, &model[0][0]);
   abcg::glUniform4f(m_colorLocation, m_select.m_color.x, m_select.m_color.y,
                     m_select.m_color.z, m_select.m_color.a);
+
+  abcg::glUniform4fv(m_KaLocation, 1, &m_Ka.x);
+  abcg::glUniform4fv(m_KdLocation, 1, &m_Kd.x);
+  abcg::glUniform4fv(m_KsLocation, 1, &m_Ks.x);
+
   abcg::glDrawElements(GL_TRIANGLES, m_indices.size(), GL_UNSIGNED_INT,
                        nullptr);
   abcg::glBindVertexArray(0);
 }
 
 void Select::onUpdate() {
-
+  // Atualiza a posição atual
   m_positionCurrent = m_select.m_position;
 
+  /*
+    Em cada atualização é esperado um tempo para que quando o estado do select
+    seja "moving", ou seja, se movendo para selecionar um cubo. O select é
+    colorido de cinza ou branco fazendo com que o select fique piscando.
+  */
   if (m_timer.elapsed() < m_tempo)
     return;
   m_timer.restart();
@@ -89,6 +115,10 @@ void Select::onUpdate() {
   }
 }
 
+/*
+  Caso o estado seja select (decidindo se os cubos escolhidas são iguais), é
+  colorido com a cor amarela.
+*/
 void Select::onSelect(bool sel) {
   if (sel) {
     m_select.m_status = StatusSelect::select;
@@ -98,6 +128,10 @@ void Select::onSelect(bool sel) {
   }
 }
 
+/*
+  É movimentado no eixo x / horizontal, dentro do intervalo de blocos, caso
+  contrário não é feito nada
+*/
 void Select::onxMove(float move) {
   if (m_select.m_position.x + move >= -0.8f &&
       m_select.m_position.x + move <= 0.6f) {
@@ -107,6 +141,10 @@ void Select::onxMove(float move) {
   }
 }
 
+/*
+  É movimentado no eixo y / vertical, dentro do intervalo de blocos, caso
+  contrário não é feito nada
+*/
 void Select::onzMove(float move) {
   if (m_select.m_position.z + move >= -0.8f &&
       m_select.m_position.z + move <= 0.6f) {
@@ -138,6 +176,8 @@ void Select::loadObj(std::string_view path) {
   m_vertices.clear();
   m_indices.clear();
 
+  m_hasNormals = false;
+
   // A key:value map with key=Vertex and value=index
   std::unordered_map<Vertex, GLuint> hash{};
 
@@ -150,11 +190,21 @@ void Select::loadObj(std::string_view path) {
 
       // Vertex position
       auto const startIndex{3 * index.vertex_index};
-      auto const vx{attrib.vertices.at(startIndex + 0)};
-      auto const vy{attrib.vertices.at(startIndex + 1)};
-      auto const vz{attrib.vertices.at(startIndex + 2)};
+      glm::vec3 position{attrib.vertices.at(startIndex + 0),
+                         attrib.vertices.at(startIndex + 1),
+                         attrib.vertices.at(startIndex + 2)};
 
-      Vertex const vertex{.position = {vx, vy, vz}};
+      // Vertex normal
+      glm::vec3 normal{};
+      if (index.normal_index >= 0) {
+        m_hasNormals = true;
+        auto const normalStartIndex{3 * index.normal_index};
+        normal = {attrib.normals.at(normalStartIndex + 0),
+                  attrib.normals.at(normalStartIndex + 1),
+                  attrib.normals.at(normalStartIndex + 2)};
+      }
+
+      Vertex const vertex{.position = position, .normal = normal};
 
       // If hash doesn't contain this vertex
       if (!hash.contains(vertex)) {
@@ -169,9 +219,13 @@ void Select::loadObj(std::string_view path) {
   }
 
   Select::standardize();
+  if (!m_hasNormals) {
+    computeNormals();
+  }
   createBuffers();
 }
 
+// Cria o EBO e VBO utilizados para imprimir os blocos
 void Select::createBuffers() {
   // Delete previous buffers
   abcg::glDeleteBuffers(1, &m_EBO);
@@ -211,6 +265,39 @@ void Select::standardize() {
   for (auto &vertex : m_vertices) {
     vertex.position = (vertex.position - center) * scaling;
   }
+}
+
+void Select::computeNormals() {
+  // Clear previous vertex normals
+  for (auto &vertex : m_vertices) {
+    vertex.normal = glm::vec3(0.0f);
+  }
+
+  // Compute face normals
+  for (auto const offset :
+       iter::range(0UL, static_cast<unsigned long>(m_indices.size()), 3UL)) {
+    // Get face vertices
+    auto &a{m_vertices.at(m_indices.at(offset + 0))};
+    auto &b{m_vertices.at(m_indices.at(offset + 1))};
+    auto &c{m_vertices.at(m_indices.at(offset + 2))};
+
+    // Compute normal
+    auto const edge1{b.position - a.position};
+    auto const edge2{c.position - b.position};
+    auto const normal{glm::cross(edge1, edge2)};
+
+    // Accumulate on vertices
+    a.normal += normal;
+    b.normal += normal;
+    c.normal += normal;
+  }
+
+  // Normalize
+  for (auto &vertex : m_vertices) {
+    vertex.normal = glm::normalize(vertex.normal);
+  }
+
+  m_hasNormals = true;
 }
 
 void Select::onDestroy() {

@@ -37,6 +37,21 @@ private:
   GLint m_projMatrixLocation{};
   GLint m_modelMatrixLocation{};
   GLint m_colorLocation{};
+  GLint m_lightDirLocation{};
+
+  GLint m_lightPositionLocation{};
+
+  // Light and material properties
+
+  glm::vec4 m_Ia{1.0f};
+  glm::vec4 m_Id{1.0f};
+  glm::vec4 m_Is{1.0f};
+
+  glm::vec3 m_light{0.0f, -1.0f, 0.0f};
+
+  GLint m_IaLocation;
+  GLint m_IdLocation;
+  GLint m_IsLocation;
 
   Camera m_camera;
   int m_camSelect = 0;

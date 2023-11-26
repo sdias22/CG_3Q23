@@ -1,23 +1,26 @@
 #include "cube.hpp"
 
+#include <iostream>
 #include <unordered_map>
 
 // Explicit specialization of std::hash for Vertex
 template <> struct std::hash<Vertex> {
   size_t operator()(Vertex const &vertex) const noexcept {
     auto const h1{std::hash<glm::vec3>()(vertex.position)};
-    return h1;
+    auto const h2{std::hash<glm::vec3>()(vertex.normal)};
+    return abcg::hashCombine(h1, h2);
   }
 };
 
+// Cria o VAO e Inicia um vetor que cria e armazena todos os cubos
 void Cube::onCreate(GLuint program) {
   auto const assetsPath{abcg::Application::getAssetsPath()};
   loadObj(assetsPath + "cube.obj");
 
+  // Preenche o vetor de cores a ser utilizado nos cubos
   for (size_t i = 0; i < 8; i++) {
     m_ColorList[i] = pink;
   }
-
   for (size_t i = 8; i < 16; i++) {
     m_ColorList[i] = yellow;
   }
@@ -66,20 +69,31 @@ void Cube::onCreate(GLuint program) {
   m_projMatrixLocation = abcg::glGetUniformLocation(program, "projMatrix");
   m_modelMatrixLocation = abcg::glGetUniformLocation(program, "modelMatrix");
   m_colorLocation = abcg::glGetUniformLocation(program, "color");
+  m_normalMatrixLocation = abcg::glGetUniformLocation(program, "normalMatrix");
+
+  m_KaLocation = abcg::glGetUniformLocation(program, "Ka");
+  m_KdLocation = abcg::glGetUniformLocation(program, "Kd");
+  m_KsLocation = abcg::glGetUniformLocation(program, "Ks");
 
   // End of binding
   abcg::glBindBuffer(GL_ARRAY_BUFFER, 0);
   abcg::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_EBO);
   abcg::glBindVertexArray(0);
 
+  // Inicia o preenchimento do vetor m_cubes que contém todas os cubos
   for (size_t i = 0; i < 8; i++) {
     for (size_t j = 0; j < 8; j++) {
       int p = i * 8 + j;
       float z = 0.2f * i;
       float x = 0.2f * j;
-      m_cubes[p].m_status = StatusCube::on;
       m_cubes[p].m_position =
           glm::vec3((m_pInicial.x + x), m_pInicial.y, (m_pInicial.z + z));
+      /*
+        Inicializa o Status On para que o usuário posso memorizar no começo do
+        jogo
+      */
+      m_cubes[p].m_status = StatusCube::on;
+      // Inicializa com um cor neutra
       m_cubes[p].m_color = black;
     }
   }
@@ -89,6 +103,10 @@ void Cube::onCreate(GLuint program) {
 
   std::uniform_int_distribution<int> rd_cubeColor(0, 63);
 
+  /*
+    Gerar dentro do conjunto de cores do vetor m_ColorList (8 cores possíveis)
+    O jogo tem 16 blocos de cada cor
+  */
   for (size_t i = 0; i < 64; i++) {
     m_colorEmpty = false;
     while (m_colorEmpty == false) {
@@ -103,25 +121,45 @@ void Cube::onCreate(GLuint program) {
 
 void Cube::onPaint() {
 
+  abcg::glUniformMatrix4fv(m_modelMatrixLocation, 1, GL_FALSE,
+                           &m_modelMatrix[0][0]);
+
+  auto const modelViewMatrix{glm::mat3(m_viewMatrix * m_modelMatrix)};
+  auto const normalMatrix{glm::inverseTranspose(modelViewMatrix)};
+  abcg::glUniformMatrix3fv(m_normalMatrixLocation, 1, GL_FALSE,
+                           &normalMatrix[0][0]);
+
   for (size_t i = 0; i < 64; i++) {
     abcg::glBindVertexArray(m_VAO);
 
     glm::mat4 model{1.0f};
-
     model = glm::translate(model, m_cubes[i].m_position);
     model = glm::scale(model, m_cubes[i].m_scale);
 
     abcg::glUniformMatrix4fv(m_modelMatrixLocation, 1, GL_FALSE, &model[0][0]);
+
+    /*
+    Caso o estado do cubo seja off, ou seja, não tenha sido revelado ainda,
+    O cubo é colorido de cinza ou branco anternativamente (objetivo é não fica
+    um bloco inteiro da mesma cor). Caso contrário, já revelado, é colorido com
+    a própria cor do cubo.
+    */
     if (m_cubes[i].m_status == StatusCube::off) {
       m_colorCurrent = ((i / 8) + i) % 2 == 0 ? gray : white;
 
       abcg::glUniform4f(m_colorLocation, m_colorCurrent.x, m_colorCurrent.y,
                         m_colorCurrent.z, m_colorCurrent.a);
+
     } else {
       abcg::glUniform4f(m_colorLocation, m_cubes[i].m_color.x,
                         m_cubes[i].m_color.y, m_cubes[i].m_color.z,
                         m_cubes[i].m_color.a);
     }
+
+    abcg::glUniform4fv(m_KaLocation, 1, &m_Ka.x);
+    abcg::glUniform4fv(m_KdLocation, 1, &m_Kd.x);
+    abcg::glUniform4fv(m_KsLocation, 1, &m_Ks.x);
+
     abcg::glDrawElements(GL_TRIANGLES, m_indices.size(), GL_UNSIGNED_INT,
                          nullptr);
     abcg::glBindVertexArray(0);
@@ -129,6 +167,12 @@ void Cube::onPaint() {
 }
 
 void Cube::onUpdate() {
+  /*
+    Em cada atualização é esperado um tempo para que quando o cubo tenha sido
+    selecionado é alterado a escala dando a impressão que o cubo está piscando
+    (aumentando e diminuindo), caso contrário (estado on ou off) é mantido a
+    escala padrão dos cubos
+  */
   if (m_timer.elapsed() < m_tempo)
     return;
   m_timer.restart();
@@ -146,12 +190,18 @@ void Cube::onUpdate() {
   }
 }
 
+// Altera para o estado off (oculta todos os cubos)
 void Cube::onState() {
   for (size_t i = 0; i < 64; i++) {
     m_cubes[i].m_status = StatusCube::off;
   }
 }
 
+// Altera o estado do cubo passado para select caso o cubo tenha o estado
+/*
+  diferente de off (ainda não selecionado e nem descoberto) e retorna true para
+  caso tenha alterado o estado, e false caso contrário
+*/
 bool Cube::onSelect(int pos) {
   if (m_cubes[pos].m_status != StatusCube::off) {
     return false;
@@ -161,6 +211,7 @@ bool Cube::onSelect(int pos) {
   }
 }
 
+// Faz a verificação se os 2 cubos selecionados são iguais
 void Cube::onDecision(int pos1, int pos2) {
   if ((m_cubes[pos1].m_status == StatusCube::select &&
        m_cubes[pos2].m_status == StatusCube::select) &&
@@ -173,6 +224,10 @@ void Cube::onDecision(int pos1, int pos2) {
   }
 }
 
+/*
+  Verifica se o jogo acabou ou não. Para isso verifica se todos os cubos foram
+descobertos
+*/
 bool Cube::onGameOver() {
   for (size_t i = 0; i < 64; i++) {
     if (m_cubes[i].m_status != StatusCube::on) {
@@ -205,6 +260,8 @@ void Cube::loadObj(std::string_view path) {
   m_vertices.clear();
   m_indices.clear();
 
+  m_hasNormals = false;
+
   // A key:value map with key=Vertex and value=index
   std::unordered_map<Vertex, GLuint> hash{};
 
@@ -217,11 +274,21 @@ void Cube::loadObj(std::string_view path) {
 
       // Vertex position
       auto const startIndex{3 * index.vertex_index};
-      auto const vx{attrib.vertices.at(startIndex + 0)};
-      auto const vy{attrib.vertices.at(startIndex + 1)};
-      auto const vz{attrib.vertices.at(startIndex + 2)};
+      glm::vec3 position{attrib.vertices.at(startIndex + 0),
+                         attrib.vertices.at(startIndex + 1),
+                         attrib.vertices.at(startIndex + 2)};
 
-      Vertex const vertex{.position = {vx, vy, vz}};
+      // Vertex normal
+      glm::vec3 normal{};
+      if (index.normal_index >= 0) {
+        m_hasNormals = true;
+        auto const normalStartIndex{3 * index.normal_index};
+        normal = {attrib.normals.at(normalStartIndex + 0),
+                  attrib.normals.at(normalStartIndex + 1),
+                  attrib.normals.at(normalStartIndex + 2)};
+      }
+
+      Vertex const vertex{.position = position, .normal = normal};
 
       // If hash doesn't contain this vertex
       if (!hash.contains(vertex)) {
@@ -236,9 +303,13 @@ void Cube::loadObj(std::string_view path) {
   }
 
   Cube::standardize();
+  if (!m_hasNormals) {
+    computeNormals();
+  }
   createBuffers();
 }
 
+// Cria o EBO e VBO utilizados para imprimir os blocos
 void Cube::createBuffers() {
   // Delete previous buffers
   abcg::glDeleteBuffers(1, &m_EBO);
@@ -278,6 +349,39 @@ void Cube::standardize() {
   for (auto &vertex : m_vertices) {
     vertex.position = (vertex.position - center) * scaling;
   }
+}
+
+void Cube::computeNormals() {
+  // Clear previous vertex normals
+  for (auto &vertex : m_vertices) {
+    vertex.normal = glm::vec3(0.0f);
+  }
+
+  // Compute face normals
+  for (auto const offset :
+       iter::range(0UL, static_cast<unsigned long>(m_indices.size()), 3UL)) {
+    // Get face vertices
+    auto &a{m_vertices.at(m_indices.at(offset + 0))};
+    auto &b{m_vertices.at(m_indices.at(offset + 1))};
+    auto &c{m_vertices.at(m_indices.at(offset + 2))};
+
+    // Compute normal
+    auto const edge1{b.position - a.position};
+    auto const edge2{c.position - b.position};
+    auto const normal{glm::cross(edge1, edge2)};
+
+    // Accumulate on vertices
+    a.normal += normal;
+    b.normal += normal;
+    c.normal += normal;
+  }
+
+  // Normalize
+  for (auto &vertex : m_vertices) {
+    vertex.normal = glm::normalize(vertex.normal);
+  }
+
+  m_hasNormals = true;
 }
 
 void Cube::onDestroy() {

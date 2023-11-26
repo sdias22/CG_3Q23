@@ -1,37 +1,46 @@
 #include "window.hpp"
 
+#include <iostream>
 #include <unordered_map>
 
+/*
+  Utilizado para movimentar o seletor e por meio do botão "espaço" selecionar
+  os cubos
+*/
 void Window::onEvent(SDL_Event const &event) {
-  if (event.type == SDL_KEYDOWN) {
-    if (event.key.keysym.sym == SDLK_w) {
-      m_select.onzMove(-0.2f);
-    }
+  if (m_game == GameStatus::playing) {
+    if (event.type == SDL_KEYDOWN) {
+      if (event.key.keysym.sym == SDLK_w || event.key.keysym.sym == SDLK_UP) {
+        m_select.onzMove(-0.2f);
+      }
 
-    if (event.key.keysym.sym == SDLK_s) {
-      m_select.onzMove(0.2f);
-    }
+      if (event.key.keysym.sym == SDLK_s || event.key.keysym.sym == SDLK_DOWN) {
+        m_select.onzMove(0.2f);
+      }
 
-    if (event.key.keysym.sym == SDLK_a) {
-      m_select.onxMove(-0.2f);
-    }
+      if (event.key.keysym.sym == SDLK_a || event.key.keysym.sym == SDLK_LEFT) {
+        m_select.onxMove(-0.2f);
+      }
 
-    if (event.key.keysym.sym == SDLK_d) {
-      m_select.onxMove(0.2f);
-    }
+      if (event.key.keysym.sym == SDLK_d ||
+          event.key.keysym.sym == SDLK_RIGHT) {
+        m_select.onxMove(0.2f);
+      }
 
-    if (event.key.keysym.sym == SDLK_SPACE) {
-      m_select.onSelect(true);
-      m_play = PlayStatus::select;
+      if (event.key.keysym.sym == SDLK_SPACE) {
+        m_select.onSelect(true);
+        m_play = PlayStatus::select;
+      }
     }
-  }
-  if (event.type == SDL_KEYUP) {
-    if (event.key.keysym.sym == SDLK_SPACE) {
-      m_select.onSelect(false);
+    if (event.type == SDL_KEYUP) {
+      if (event.key.keysym.sym == SDLK_SPACE) {
+        m_select.onSelect(false);
+      }
     }
   }
 }
 
+// Cria o programa e chama o create das demais classe para criarem os objetos
 void Window::onCreate() {
   auto const &assetsPath{abcg::Application::getAssetsPath()};
   abcg::glClearColor(0, 0, 0, 1);
@@ -60,6 +69,15 @@ void Window::onCreate() {
   m_projMatrixLocation = abcg::glGetUniformLocation(m_program, "projMatrix");
   m_modelMatrixLocation = abcg::glGetUniformLocation(m_program, "modelMatrix");
   m_colorLocation = abcg::glGetUniformLocation(m_program, "color");
+  m_lightDirLocation =
+      abcg::glGetUniformLocation(m_program, "lightDirWorldSpace");
+
+  m_lightPositionLocation =
+      abcg::glGetUniformLocation(m_program, "lightPosition");
+
+  m_IaLocation = abcg::glGetUniformLocation(m_program, "Ia");
+  m_IdLocation = abcg::glGetUniformLocation(m_program, "Id");
+  m_IsLocation = abcg::glGetUniformLocation(m_program, "Is");
 
   m_game = GameStatus::start;
 }
@@ -79,6 +97,13 @@ void Window::onPaint() {
   abcg::glUniformMatrix4fv(m_projMatrixLocation, 1, GL_FALSE,
                            &m_camera.getProjMatrix()[0][0]);
 
+  abcg::glUniform3f(m_lightPositionLocation, m_light.x, m_light.y, m_light.z);
+
+  abcg::glUniform4fv(m_lightDirLocation, 1, &m_light.x);
+  abcg::glUniform4fv(m_IaLocation, 1, &m_Ia.x);
+  abcg::glUniform4fv(m_IdLocation, 1, &m_Id.x);
+  abcg::glUniform4fv(m_IsLocation, 1, &m_Is.x);
+
   // Desenha o tabuleiro
   m_ground.onPaint();
 
@@ -93,12 +118,23 @@ void Window::onPaint() {
 
 void Window::onUpdate() {
   onGame();
+  /*
+    Caso seja o fim do jogo, é feito o return até ser alterado o status para
+    iniciar novamente o jogo
+  */
   if (m_game == GameStatus::gameover) {
     return;
   }
 
+  // Atualiza a câmera para a selecionada no onPaintUI
   m_camera.onUpdate(m_camSelect);
 
+  /*
+    Caso o estado do game seja "start" é desenhado o campo, os cubos coloridos
+    e o seletor, após um intervalo de tempo é oculto as cores dos cubos e
+    alterado o estado do jogo para "playing", permitando que o usuário movimente
+    e selecione os cubos
+  */
   if (m_game == GameStatus::start) {
     m_cube.onUpdate();
     m_select.onUpdate();
@@ -117,6 +153,11 @@ void Window::onUpdate() {
 
     m_game = GameStatus::playing;
 
+    /*
+      Já jogando, quando selecionado um cubo é calculado a posição no vetor
+      dado a posição do seletor e caso seja o 2° cubo selecionado é alterado o
+      estado do jogo para "decision"
+    */
   } else if (m_play == PlayStatus::select) {
 
     m_positionCurrent = m_select.m_positionCurrent;
@@ -141,6 +182,12 @@ void Window::onUpdate() {
     }
 
   } else if (m_play == PlayStatus::decision) {
+
+    /*
+      No estado Decision é chamado a função da classe Cube e caso o retorno seja
+      true é limpo o vetor que armazena as posições selecionadas.
+      Após isso é retornado o estado do game para "moving"
+    */
     m_select.onUpdate();
 
     m_timer.restart();
@@ -163,6 +210,7 @@ void Window::onUpdate() {
 }
 
 void Window::onPaintUI() {
+  // Menu de escolha da Câmera e botão de reinicio do jogo
   // Tamanho e Posição do Menu
   auto const widgetSize{ImVec2(210, 70)};
   ImGui::SetNextWindowPos(ImVec2(355, 5));
@@ -196,6 +244,7 @@ void Window::onPaintUI() {
 
   ImGui::End();
 
+  // Bloco de texto com mensagens para o usuário
   // Tamanho e Posição do texto
   auto const widgetSizeT{ImVec2(190, 60)};
   ImGui::SetNextWindowPos(ImVec2((m_viewportSize.x - widgetSizeT.x) / 2,
@@ -224,6 +273,7 @@ void Window::onPaintUI() {
   }
 }
 
+// Verifica se o jogo acabou ou foi reiniciado utilizando o botão do onPaintUI
 void Window::onGame() {
   if (m_restart || (m_cube.onGameOver() && m_game != GameStatus::start)) {
     m_game = GameStatus::gameover;
@@ -234,6 +284,7 @@ void Window::onGame() {
   }
 }
 
+// Reinicia as variáveis e o jogo
 void Window::onRestart() {
   abcg::glClearColor(0, 0, 0, 1);
   m_restart = false;

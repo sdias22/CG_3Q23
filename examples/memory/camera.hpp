@@ -28,6 +28,7 @@ private:
     float m_angle;
   };
 
+  // Utilizada para armazenar a câmera atual
   glm::vec3 m_eyeAt_Current;
   glm::vec3 m_at_Current;
   glm::vec3 m_up_Current;
