@@ -6,16 +6,21 @@
 
 class Ground {
 public:
-  void onCreate(GLuint program);
-  void onPaint();
+  void onCreate();
+  void onPaint(glm::mat4 m_ViewMatrix, glm::mat4 m_ProjMatrix);
   void onDestroy();
 
 private:
+  void onSetup();
   GLuint m_VAO{};
   GLuint m_VBO{};
 
-  GLint m_modelMatrixLoc{};
-  GLint m_colorLoc{};
+  // Shaders
+  GLuint m_program{};
+  GLint m_viewMatrixLocation{};
+  GLint m_projMatrixLocation{};
+  GLint m_modelMatrixLocation{};
+  GLint m_colorLocation{};
 };
 
 #endif

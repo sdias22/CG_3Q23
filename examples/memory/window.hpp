@@ -2,6 +2,7 @@
 #define WINDOW_HPP_
 
 #include "abcgOpenGL.hpp"
+#include "background.hpp"
 #include "camera.hpp"
 #include "cube.hpp"
 #include "ground.hpp"
@@ -26,32 +27,13 @@ private:
   void onRestart();
 
   Ground m_ground;
+  Background m_background;
   Cube m_cube;
   Select m_select;
   PlayStatus m_play{PlayStatus::moving};
   GameStatus m_game{GameStatus::playing};
 
   glm::ivec2 m_viewportSize{};
-  GLuint m_program{};
-  GLint m_viewMatrixLocation{};
-  GLint m_projMatrixLocation{};
-  GLint m_modelMatrixLocation{};
-  GLint m_colorLocation{};
-  GLint m_lightDirLocation{};
-
-  GLint m_lightPositionLocation{};
-
-  // Light and material properties
-
-  glm::vec4 m_Ia{1.0f};
-  glm::vec4 m_Id{1.0f};
-  glm::vec4 m_Is{1.0f};
-
-  glm::vec3 m_light{0.0f, -1.0f, 0.0f};
-
-  GLint m_IaLocation;
-  GLint m_IdLocation;
-  GLint m_IsLocation;
 
   Camera m_camera;
   int m_camSelect = 0;
@@ -70,10 +52,6 @@ private:
   std::vector<int> select{-1, -1};
 
   glm::vec3 m_positionCurrent{0.0f, 0.25f, 0.0f};
-
-  float m_xmove{0.0f};
-  float m_ymove{0.0f};
-  float m_zmove{0.0f};
 };
 
 #endif

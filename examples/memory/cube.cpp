@@ -12,10 +12,72 @@ template <> struct std::hash<Vertex> {
   }
 };
 
-// Cria o VAO e Inicia um vetor que cria e armazena todos os cubos
-void Cube::onCreate(GLuint program) {
+// Criar program e armazena o local com as infos. dos Shaders
+void Cube::onSetup() {
+  auto const &assetsPath{abcg::Application::getAssetsPath()};
+
+  // Cria o Programa
+  m_program = abcg::createOpenGLProgram(
+      {{.source = assetsPath + "cube.vert", .stage = abcg::ShaderStage::Vertex},
+       {.source = assetsPath + "cube.frag",
+        .stage = abcg::ShaderStage::Fragment}});
+
+  // Release previous VAO
+  abcg::glDeleteVertexArrays(1, &m_VAO);
+
+  // Create VAO
+  abcg::glGenVertexArrays(1, &m_VAO);
+  abcg::glBindVertexArray(m_VAO);
+
+  // Bind EBO and VBO
+  abcg::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_EBO);
+  abcg::glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
+
+  // Bind vertex attributes
+  auto const positionAttribute{
+      abcg::glGetAttribLocation(m_program, "inPosition")};
+
+  if (positionAttribute >= 0) {
+    abcg::glEnableVertexAttribArray(positionAttribute);
+    abcg::glVertexAttribPointer(positionAttribute, 3, GL_FLOAT, GL_FALSE,
+                                sizeof(Vertex), nullptr);
+  }
+
+  // Get location of uniform variables
+  m_viewMatrixLocation = abcg::glGetUniformLocation(m_program, "viewMatrix");
+  m_projMatrixLocation = abcg::glGetUniformLocation(m_program, "projMatrix");
+  m_modelMatrixLocation = abcg::glGetUniformLocation(m_program, "modelMatrix");
+  m_colorLocation = abcg::glGetUniformLocation(m_program, "color");
+  m_normalMatrixLocation =
+      abcg::glGetUniformLocation(m_program, "normalMatrix");
+
+  // Light Properties
+  m_lightPositionLocation =
+      abcg::glGetUniformLocation(m_program, "lightPosition");
+
+  m_IaLocation = abcg::glGetUniformLocation(m_program, "Ia");
+  m_IdLocation = abcg::glGetUniformLocation(m_program, "Id");
+  m_IsLocation = abcg::glGetUniformLocation(m_program, "Is");
+
+  // Material properties
+  m_KaLocation = abcg::glGetUniformLocation(m_program, "Ka");
+  m_KdLocation = abcg::glGetUniformLocation(m_program, "Kd");
+  m_KsLocation = abcg::glGetUniformLocation(m_program, "Ks");
+
+  // End of binding
+  abcg::glBindBuffer(GL_ARRAY_BUFFER, 0);
+  abcg::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_EBO);
+  abcg::glBindVertexArray(0);
+}
+
+// Inicializa os Shaders e inicializa os cubos
+void Cube::onCreate() {
+
   auto const assetsPath{abcg::Application::getAssetsPath()};
   loadObj(assetsPath + "cube.obj");
+
+  // Criar program e armazena o local com as infos. dos Shaders
+  onSetup();
 
   // Preenche o vetor de cores a ser utilizado nos cubos
   for (size_t i = 0; i < 8; i++) {
@@ -42,43 +104,6 @@ void Cube::onCreate(GLuint program) {
   for (size_t i = 56; i < 64; i++) {
     m_ColorList[i] = brown;
   }
-
-  // Release previous VAO
-  abcg::glDeleteVertexArrays(1, &m_VAO);
-
-  // Create VAO
-  abcg::glGenVertexArrays(1, &m_VAO);
-  abcg::glBindVertexArray(m_VAO);
-
-  // Bind EBO and VBO
-  abcg::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_EBO);
-  abcg::glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
-
-  // Bind vertex attributes
-  auto const positionAttribute{
-      abcg::glGetAttribLocation(program, "inPosition")};
-
-  if (positionAttribute >= 0) {
-    abcg::glEnableVertexAttribArray(positionAttribute);
-    abcg::glVertexAttribPointer(positionAttribute, 3, GL_FLOAT, GL_FALSE,
-                                sizeof(Vertex), nullptr);
-  }
-
-  // Get location of uniform variables
-  m_viewMatrixLocation = abcg::glGetUniformLocation(program, "viewMatrix");
-  m_projMatrixLocation = abcg::glGetUniformLocation(program, "projMatrix");
-  m_modelMatrixLocation = abcg::glGetUniformLocation(program, "modelMatrix");
-  m_colorLocation = abcg::glGetUniformLocation(program, "color");
-  m_normalMatrixLocation = abcg::glGetUniformLocation(program, "normalMatrix");
-
-  m_KaLocation = abcg::glGetUniformLocation(program, "Ka");
-  m_KdLocation = abcg::glGetUniformLocation(program, "Kd");
-  m_KsLocation = abcg::glGetUniformLocation(program, "Ks");
-
-  // End of binding
-  abcg::glBindBuffer(GL_ARRAY_BUFFER, 0);
-  abcg::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_EBO);
-  abcg::glBindVertexArray(0);
 
   // Inicia o preenchimento do vetor m_cubes que contém todas os cubos
   for (size_t i = 0; i < 8; i++) {
@@ -119,15 +144,15 @@ void Cube::onCreate(GLuint program) {
   }
 }
 
-void Cube::onPaint() {
+void Cube::onPaint(glm::mat4 m_ViewMatrix, glm::mat4 m_ProjMatrix) {
 
-  abcg::glUniformMatrix4fv(m_modelMatrixLocation, 1, GL_FALSE,
-                           &m_modelMatrix[0][0]);
+  abcg::glUseProgram(m_program);
 
-  auto const modelViewMatrix{glm::mat3(m_viewMatrix * m_modelMatrix)};
-  auto const normalMatrix{glm::inverseTranspose(modelViewMatrix)};
-  abcg::glUniformMatrix3fv(m_normalMatrixLocation, 1, GL_FALSE,
-                           &normalMatrix[0][0]);
+  // Set uniform variables for viewMatrix and projMatrix
+  abcg::glUniformMatrix4fv(m_viewMatrixLocation, 1, GL_FALSE,
+                           &m_ViewMatrix[0][0]);
+  abcg::glUniformMatrix4fv(m_projMatrixLocation, 1, GL_FALSE,
+                           &m_ProjMatrix[0][0]);
 
   for (size_t i = 0; i < 64; i++) {
     abcg::glBindVertexArray(m_VAO);
@@ -137,6 +162,11 @@ void Cube::onPaint() {
     model = glm::scale(model, m_cubes[i].m_scale);
 
     abcg::glUniformMatrix4fv(m_modelMatrixLocation, 1, GL_FALSE, &model[0][0]);
+
+    auto const modelViewMatrix{glm::mat3(m_viewMatrix * model)};
+    auto const normalMatrix{glm::inverseTranspose(modelViewMatrix)};
+    abcg::glUniformMatrix3fv(m_normalMatrixLocation, 1, GL_FALSE,
+                             &normalMatrix[0][0]);
 
     /*
     Caso o estado do cubo seja off, ou seja, não tenha sido revelado ainda,
@@ -160,10 +190,18 @@ void Cube::onPaint() {
     abcg::glUniform4fv(m_KdLocation, 1, &m_Kd.x);
     abcg::glUniform4fv(m_KsLocation, 1, &m_Ks.x);
 
+    abcg::glUniform3f(m_lightPositionLocation, m_light.x, m_light.y, m_light.z);
+
+    abcg::glUniform4fv(m_IaLocation, 1, &m_Ia.x);
+    abcg::glUniform4fv(m_IdLocation, 1, &m_Id.x);
+    abcg::glUniform4fv(m_IsLocation, 1, &m_Is.x);
+
     abcg::glDrawElements(GL_TRIANGLES, m_indices.size(), GL_UNSIGNED_INT,
                          nullptr);
     abcg::glBindVertexArray(0);
   }
+
+  abcg::glUseProgram(0);
 }
 
 void Cube::onUpdate() {
@@ -388,4 +426,5 @@ void Cube::onDestroy() {
   abcg::glDeleteBuffers(1, &m_EBO);
   abcg::glDeleteBuffers(1, &m_VBO);
   abcg::glDeleteVertexArrays(1, &m_VAO);
+  abcg::glDeleteProgram(m_program);
 }

@@ -12,13 +12,15 @@ template <> struct std::hash<Vertex> {
   }
 };
 
-/*
-  Cria o objeto de Seleção (VAO, VBO e EBO) e atualiza a cor, posição e status
-do objeto
-*/
-void Select::onCreate(GLuint program) {
-  auto const assetsPath{abcg::Application::getAssetsPath()};
-  loadObj(assetsPath + "select.obj");
+// Criar program e armazena o local com as infos. dos Shaders
+void Select::onSetup() {
+  auto const &assetsPath{abcg::Application::getAssetsPath()};
+
+  // Cria o Programa
+  m_program = abcg::createOpenGLProgram(
+      {{.source = assetsPath + "cube.vert", .stage = abcg::ShaderStage::Vertex},
+       {.source = assetsPath + "cube.frag",
+        .stage = abcg::ShaderStage::Fragment}});
 
   // Release previous VAO
   abcg::glDeleteVertexArrays(1, &m_VAO);
@@ -33,7 +35,8 @@ void Select::onCreate(GLuint program) {
 
   // Bind vertex attributes
   auto const positionAttribute{
-      abcg::glGetAttribLocation(program, "inPosition")};
+      abcg::glGetAttribLocation(m_program, "inPosition")};
+
   if (positionAttribute >= 0) {
     abcg::glEnableVertexAttribArray(positionAttribute);
     abcg::glVertexAttribPointer(positionAttribute, 3, GL_FLOAT, GL_FALSE,
@@ -41,20 +44,42 @@ void Select::onCreate(GLuint program) {
   }
 
   // Get location of uniform variables
-  m_viewMatrixLocation = abcg::glGetUniformLocation(program, "viewMatrix");
-  m_projMatrixLocation = abcg::glGetUniformLocation(program, "projMatrix");
-  m_modelMatrixLocation = abcg::glGetUniformLocation(program, "modelMatrix");
-  m_colorLocation = abcg::glGetUniformLocation(program, "color");
-  m_normalMatrixLocation = abcg::glGetUniformLocation(program, "normalMatrix");
+  m_viewMatrixLocation = abcg::glGetUniformLocation(m_program, "viewMatrix");
+  m_projMatrixLocation = abcg::glGetUniformLocation(m_program, "projMatrix");
+  m_modelMatrixLocation = abcg::glGetUniformLocation(m_program, "modelMatrix");
+  m_colorLocation = abcg::glGetUniformLocation(m_program, "color");
+  m_normalMatrixLocation =
+      abcg::glGetUniformLocation(m_program, "normalMatrix");
 
-  m_KaLocation = abcg::glGetUniformLocation(program, "Ka");
-  m_KdLocation = abcg::glGetUniformLocation(program, "Kd");
-  m_KsLocation = abcg::glGetUniformLocation(program, "Ks");
+  // Light Properties
+  m_lightPositionLocation =
+      abcg::glGetUniformLocation(m_program, "lightPosition");
+
+  m_IaLocation = abcg::glGetUniformLocation(m_program, "Ia");
+  m_IdLocation = abcg::glGetUniformLocation(m_program, "Id");
+  m_IsLocation = abcg::glGetUniformLocation(m_program, "Is");
+
+  // Material properties
+  m_KaLocation = abcg::glGetUniformLocation(m_program, "Ka");
+  m_KdLocation = abcg::glGetUniformLocation(m_program, "Kd");
+  m_KsLocation = abcg::glGetUniformLocation(m_program, "Ks");
 
   // End of binding
   abcg::glBindBuffer(GL_ARRAY_BUFFER, 0);
   abcg::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_EBO);
   abcg::glBindVertexArray(0);
+}
+
+/*
+  Cria o objeto de Seleção (VAO, VBO e EBO) e atualiza a cor, posição e status
+do objeto
+*/
+void Select::onCreate() {
+  auto const assetsPath{abcg::Application::getAssetsPath()};
+  loadObj(assetsPath + "select.obj");
+
+  // Criar program e armazena o local com as infos. dos Shaders
+  onSetup();
 
   // Inicializa o m_select
   m_select.m_status = StatusSelect::moving;
@@ -63,22 +88,26 @@ void Select::onCreate(GLuint program) {
 }
 
 // Desenha na tela a objeto de seleção
-void Select::onPaint() {
+void Select::onPaint(glm::mat4 m_ViewMatrix, glm::mat4 m_ProjMatrix) {
+  abcg::glUseProgram(m_program);
+
+  // Set uniform variables for viewMatrix and projMatrix
+  abcg::glUniformMatrix4fv(m_viewMatrixLocation, 1, GL_FALSE,
+                           &m_ViewMatrix[0][0]);
+  abcg::glUniformMatrix4fv(m_projMatrixLocation, 1, GL_FALSE,
+                           &m_ProjMatrix[0][0]);
+
   abcg::glBindVertexArray(m_VAO);
-
-  // Set uniform variables for the current model
-  abcg::glUniformMatrix4fv(m_modelMatrixLocation, 1, GL_FALSE,
-                           &m_modelMatrix[0][0]);
-
-  auto const modelViewMatrix{glm::mat3(m_viewMatrix * m_modelMatrix)};
-  auto const normalMatrix{glm::inverseTranspose(modelViewMatrix)};
-  abcg::glUniformMatrix3fv(m_normalMatrixLocation, 1, GL_FALSE,
-                           &normalMatrix[0][0]);
 
   glm::mat4 model{1.0f};
 
   model = glm::translate(model, m_select.m_position);
   model = glm::scale(model, glm::vec3(0.45f));
+
+  auto const modelViewMatrix{glm::mat3(m_viewMatrix * model)};
+  auto const normalMatrix{glm::inverseTranspose(modelViewMatrix)};
+  abcg::glUniformMatrix3fv(m_normalMatrixLocation, 1, GL_FALSE,
+                           &normalMatrix[0][0]);
 
   abcg::glUniformMatrix4fv(m_modelMatrixLocation, 1, GL_FALSE, &model[0][0]);
   abcg::glUniform4f(m_colorLocation, m_select.m_color.x, m_select.m_color.y,
@@ -88,9 +117,17 @@ void Select::onPaint() {
   abcg::glUniform4fv(m_KdLocation, 1, &m_Kd.x);
   abcg::glUniform4fv(m_KsLocation, 1, &m_Ks.x);
 
+  abcg::glUniform3f(m_lightPositionLocation, m_light.x, m_light.y, m_light.z);
+
+  abcg::glUniform4fv(m_IaLocation, 1, &m_Ia.x);
+  abcg::glUniform4fv(m_IdLocation, 1, &m_Id.x);
+  abcg::glUniform4fv(m_IsLocation, 1, &m_Is.x);
+
   abcg::glDrawElements(GL_TRIANGLES, m_indices.size(), GL_UNSIGNED_INT,
                        nullptr);
   abcg::glBindVertexArray(0);
+
+  abcg::glUseProgram(0);
 }
 
 void Select::onUpdate() {
@@ -304,4 +341,5 @@ void Select::onDestroy() {
   abcg::glDeleteBuffers(1, &m_EBO);
   abcg::glDeleteBuffers(1, &m_VBO);
   abcg::glDeleteVertexArrays(1, &m_VAO);
+  abcg::glDeleteProgram(m_program);
 }

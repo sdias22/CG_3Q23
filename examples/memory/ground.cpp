@@ -1,6 +1,25 @@
 #include "ground.hpp"
 
-void Ground::onCreate(GLuint m_program) {
+void Ground::onSetup() {
+  auto const &assetsPath{abcg::Application::getAssetsPath()};
+
+  // Cria o Programa
+  m_program =
+      abcg::createOpenGLProgram({{.source = assetsPath + "ground.vert",
+                                  .stage = abcg::ShaderStage::Vertex},
+                                 {.source = assetsPath + "ground.frag",
+                                  .stage = abcg::ShaderStage::Fragment}});
+
+  // Save location of uniform variables
+  m_viewMatrixLocation = abcg::glGetUniformLocation(m_program, "viewMatrix");
+  m_projMatrixLocation = abcg::glGetUniformLocation(m_program, "projMatrix");
+  m_modelMatrixLocation = abcg::glGetUniformLocation(m_program, "modelMatrix");
+  m_colorLocation = abcg::glGetUniformLocation(m_program, "color");
+}
+
+void Ground::onCreate() {
+  onSetup();
+
   // Unit quad on the xz plane
   std::array<glm::vec3, 4> m_vertices{{{-0.5000f, 0.0f, +0.5000f},
                                        {-0.5000f, 0.0f, -0.5000f},
@@ -25,13 +44,17 @@ void Ground::onCreate(GLuint m_program) {
                               nullptr);
   abcg::glBindBuffer(GL_ARRAY_BUFFER, 0);
   abcg::glBindVertexArray(0);
-
-  // Save location of uniform variables
-  m_modelMatrixLoc = abcg::glGetUniformLocation(m_program, "modelMatrix");
-  m_colorLoc = abcg::glGetUniformLocation(m_program, "color");
 }
 
-void Ground::onPaint() {
+void Ground::onPaint(glm::mat4 m_ViewMatrix, glm::mat4 m_ProjMatrix) {
+  abcg::glUseProgram(m_program);
+
+  // Set uniform variables for viewMatrix and projMatrix
+  abcg::glUniformMatrix4fv(m_viewMatrixLocation, 1, GL_FALSE,
+                           &m_ViewMatrix[0][0]);
+  abcg::glUniformMatrix4fv(m_projMatrixLocation, 1, GL_FALSE,
+                           &m_ProjMatrix[0][0]);
+
   abcg::glBindVertexArray(m_VAO);
 
   // Draw a grid of 2N x 2N tiles on the xz plane, centered around the
@@ -46,11 +69,12 @@ void Ground::onPaint() {
       model = glm::translate(model, glm::vec3(x * 0.2f, 0.0f, z * 0.2f));
       model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));
 
-      abcg::glUniformMatrix4fv(m_modelMatrixLoc, 1, GL_FALSE, &model[0][0]);
+      abcg::glUniformMatrix4fv(m_modelMatrixLocation, 1, GL_FALSE,
+                               &model[0][0]);
 
       // Set color (checkerboard pattern)
       auto const whiteOrDarkGray{(z + x) % 2 == 0 ? 1.0f : 0.1f};
-      abcg::glUniform4f(m_colorLoc, whiteOrDarkGray, whiteOrDarkGray,
+      abcg::glUniform4f(m_colorLocation, whiteOrDarkGray, whiteOrDarkGray,
                         whiteOrDarkGray, 1.0f);
 
       abcg::glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -58,9 +82,12 @@ void Ground::onPaint() {
   }
 
   abcg::glBindVertexArray(0);
+
+  abcg::glUseProgram(0);
 }
 
 void Ground::onDestroy() {
   abcg::glDeleteBuffers(1, &m_VBO);
   abcg::glDeleteVertexArrays(1, &m_VAO);
+  abcg::glDeleteProgram(m_program);
 }

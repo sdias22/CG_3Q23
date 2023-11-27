@@ -6,7 +6,8 @@ int main(int argc, char **argv) {
 
     Window window;
     window.setOpenGLSettings({.samples = 4});
-    window.setWindowSettings({.width = 600, .height = 600, .title = "Memory"});
+    window.setWindowSettings(
+        {.width = 600, .height = 600, .title = "Memory_Separado"});
 
     app.run(window);
   } catch (std::exception const &exception) {

@@ -9,8 +9,8 @@ enum class StatusCube { on, off, select };
 
 class Cube {
 public:
-  void onCreate(GLuint program);
-  void onPaint();
+  void onCreate();
+  void onPaint(glm::mat4 m_ViewMatrix, glm::mat4 m_ProjMatrix);
   void onUpdate();
   void onState();
   void onDestroy();
@@ -19,6 +19,7 @@ public:
   void onDecision(int pos1, int pos2);
 
 private:
+  void onSetup();
   void createBuffers();
   void loadObj(std::string_view path);
   void standardize();
@@ -32,30 +33,28 @@ private:
     glm::vec3 m_scale{0.5f};
   };
 
-  abcg::Timer m_timer;
-  float m_tempo{0.05f};
-
-  int n = 64;
   Cubes m_cubes[64];
 
   GLuint m_VAO{};
   GLuint m_VBO{};
   GLuint m_EBO{};
+
+  bool m_hasNormals{false};
   std::vector<Vertex> m_vertices;
   std::vector<GLuint> m_indices;
 
-  bool m_hasNormals{false};
+  glm::mat4 m_viewMatrix{1.0f};
 
+  // Shaders
+  GLuint m_program{};
   GLint m_viewMatrixLocation{};
   GLint m_projMatrixLocation{};
   GLint m_modelMatrixLocation{};
   GLint m_colorLocation{};
-
   GLint m_normalMatrixLocation{};
+  GLint m_lightPositionLocation{};
 
-  glm::mat4 m_modelMatrix{1.0f};
-  glm::mat4 m_viewMatrix{1.0f};
-
+  // Material properties
   GLint m_KaLocation;
   GLint m_KdLocation;
   GLint m_KsLocation;
@@ -64,7 +63,18 @@ private:
   glm::vec4 m_Kd{0.7f, 0.7f, 0.7f, 1.0f};
   glm::vec4 m_Ks{1.0f};
 
-  // Armazena as cores utilizadas nos cubos
+  // Light properties
+  GLint m_IaLocation;
+  GLint m_IdLocation;
+  GLint m_IsLocation;
+
+  glm::vec4 m_Ia{1.0f};
+  glm::vec4 m_Id{1.0f};
+  glm::vec4 m_Is{1.0f};
+
+  glm::vec3 m_light{0.0f, -1.0f, 0.0f};
+
+  // Cores utilizadas nos cubos
   glm::vec4 gray{0.3f, 0.3f, 0.3f, 1.0f};
   glm::vec4 pink{1.0f, 0.0f, 1.0f, 1.0f};
   glm::vec4 yellow{1.0f, 0.8f, 0.0f, 1.0f};
@@ -82,6 +92,9 @@ private:
   glm::vec4 m_colorCurrent{gray};
 
   bool m_colorEmpty{false};
+
+  abcg::Timer m_timer;
+  float m_tempo{0.05f};
 
   std::default_random_engine m_randomEngine;
 
