@@ -1,6 +1,5 @@
 #include "cube.hpp"
 
-#include <iostream>
 #include <unordered_map>
 
 // Explicit specialization of std::hash for Vertex
@@ -36,20 +35,28 @@ void Cube::onSetup() {
   // Bind vertex attributes
   auto const positionAttribute{
       abcg::glGetAttribLocation(m_program, "inPosition")};
-
   if (positionAttribute >= 0) {
     abcg::glEnableVertexAttribArray(positionAttribute);
     abcg::glVertexAttribPointer(positionAttribute, 3, GL_FLOAT, GL_FALSE,
                                 sizeof(Vertex), nullptr);
   }
 
+  auto const normalAttribute{abcg::glGetAttribLocation(m_program, "inNormal")};
+  if (normalAttribute >= 0) {
+    abcg::glEnableVertexAttribArray(normalAttribute);
+    auto const offset{offsetof(Vertex, normal)};
+    abcg::glVertexAttribPointer(normalAttribute, 3, GL_FLOAT, GL_FALSE,
+                                sizeof(Vertex),
+                                reinterpret_cast<void *>(offset));
+  }
+
   // Get location of uniform variables
   m_viewMatrixLocation = abcg::glGetUniformLocation(m_program, "viewMatrix");
   m_projMatrixLocation = abcg::glGetUniformLocation(m_program, "projMatrix");
   m_modelMatrixLocation = abcg::glGetUniformLocation(m_program, "modelMatrix");
-  m_colorLocation = abcg::glGetUniformLocation(m_program, "color");
   m_normalMatrixLocation =
       abcg::glGetUniformLocation(m_program, "normalMatrix");
+  m_colorMatrixLocation = abcg::glGetUniformLocation(m_program, "color");
 
   // Light Properties
   m_lightPositionLocation =
@@ -163,7 +170,7 @@ void Cube::onPaint(glm::mat4 m_ViewMatrix, glm::mat4 m_ProjMatrix) {
 
     abcg::glUniformMatrix4fv(m_modelMatrixLocation, 1, GL_FALSE, &model[0][0]);
 
-    auto const modelViewMatrix{glm::mat3(m_viewMatrix * model)};
+    auto const modelViewMatrix{glm::mat3(m_ViewMatrix * model)};
     auto const normalMatrix{glm::inverseTranspose(modelViewMatrix)};
     abcg::glUniformMatrix3fv(m_normalMatrixLocation, 1, GL_FALSE,
                              &normalMatrix[0][0]);
@@ -171,19 +178,14 @@ void Cube::onPaint(glm::mat4 m_ViewMatrix, glm::mat4 m_ProjMatrix) {
     /*
     Caso o estado do cubo seja off, ou seja, não tenha sido revelado ainda,
     O cubo é colorido de cinza ou branco anternativamente (objetivo é não fica
-    um bloco inteiro da mesma cor). Caso contrário, já revelado, é colorido com
-    a própria cor do cubo.
+    um bloco inteiro da mesma cor). Caso contrário, já revelado, é colorido
+    com a própria cor do cubo.
     */
     if (m_cubes[i].m_status == StatusCube::off) {
       m_colorCurrent = ((i / 8) + i) % 2 == 0 ? gray : white;
-
-      abcg::glUniform4f(m_colorLocation, m_colorCurrent.x, m_colorCurrent.y,
-                        m_colorCurrent.z, m_colorCurrent.a);
-
+      abcg::glUniform4fv(m_colorMatrixLocation, 1, &m_colorCurrent.x);
     } else {
-      abcg::glUniform4f(m_colorLocation, m_cubes[i].m_color.x,
-                        m_cubes[i].m_color.y, m_cubes[i].m_color.z,
-                        m_cubes[i].m_color.a);
+      abcg::glUniform4fv(m_colorMatrixLocation, 1, &m_cubes[i].m_color.x);
     }
 
     abcg::glUniform4fv(m_KaLocation, 1, &m_Ka.x);
@@ -237,8 +239,8 @@ void Cube::onState() {
 
 // Altera o estado do cubo passado para select caso o cubo tenha o estado
 /*
-  diferente de off (ainda não selecionado e nem descoberto) e retorna true para
-  caso tenha alterado o estado, e false caso contrário
+  diferente de off (ainda não selecionado e nem descoberto) e retorna true
+  para caso tenha alterado o estado, e false caso contrário
 */
 bool Cube::onSelect(int pos) {
   if (m_cubes[pos].m_status != StatusCube::off) {

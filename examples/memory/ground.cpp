@@ -14,34 +14,63 @@ void Ground::onSetup() {
   m_viewMatrixLocation = abcg::glGetUniformLocation(m_program, "viewMatrix");
   m_projMatrixLocation = abcg::glGetUniformLocation(m_program, "projMatrix");
   m_modelMatrixLocation = abcg::glGetUniformLocation(m_program, "modelMatrix");
-  m_colorLocation = abcg::glGetUniformLocation(m_program, "color");
+  m_normalMatrixLocation =
+      abcg::glGetUniformLocation(m_program, "normalMatrix");
+
+  // Light Properties
+  m_lightPositionLocation =
+      abcg::glGetUniformLocation(m_program, "lightPosition");
+
+  m_IaLocation = abcg::glGetUniformLocation(m_program, "Ia");
+  m_IdLocation = abcg::glGetUniformLocation(m_program, "Id");
+  m_IsLocation = abcg::glGetUniformLocation(m_program, "Is");
+
+  // Material properties
+  m_KaLocation = abcg::glGetUniformLocation(m_program, "Ka");
+  m_KdLocation = abcg::glGetUniformLocation(m_program, "Kd");
+  m_KsLocation = abcg::glGetUniformLocation(m_program, "Ks");
 }
 
 void Ground::onCreate() {
   onSetup();
 
   // Unit quad on the xz plane
-  std::array<glm::vec3, 4> m_vertices{{{-0.5000f, 0.0f, +0.5000f},
-                                       {-0.5000f, 0.0f, -0.5000f},
-                                       {+0.5000f, 0.0f, +0.5000f},
-                                       {+0.5000f, 0.0f, -0.5000f}}};
+  std::vector<Vertex> m_vertices{
+      {{.position = {+0.5f, 0.0f, -0.5f}, .normal{0.0f, 1.0f, 0.0f}},
+       {.position = {-0.5f, 0.0f, -0.5f}, .normal{0.0f, 1.0f, 0.0f}},
+       {.position = {+0.5f, 0.0f, +0.5f}, .normal{0.0f, 1.0f, 0.0f}},
+       {.position = {-0.5f, 0.0f, +0.5f}, .normal{0.0f, 1.0f, 0.0f}}}};
 
   // Generate VBO
   abcg::glGenBuffers(1, &m_VBO);
   abcg::glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
-  abcg::glBufferData(GL_ARRAY_BUFFER, sizeof(m_vertices), m_vertices.data(),
-                     GL_STATIC_DRAW);
+  abcg::glBufferData(GL_ARRAY_BUFFER,
+                     sizeof(m_vertices.at(0)) * m_vertices.size(),
+                     m_vertices.data(), GL_STATIC_DRAW);
   abcg::glBindBuffer(GL_ARRAY_BUFFER, 0);
 
   // Create VAO and bind vertex attributes
   abcg::glGenVertexArrays(1, &m_VAO);
   abcg::glBindVertexArray(m_VAO);
   abcg::glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
+
   auto const positionAttribute{
       abcg::glGetAttribLocation(m_program, "inPosition")};
+  // if (positionAttribute >= 0) {
   abcg::glEnableVertexAttribArray(positionAttribute);
-  abcg::glVertexAttribPointer(positionAttribute, 3, GL_FLOAT, GL_FALSE, 0,
-                              nullptr);
+  abcg::glVertexAttribPointer(positionAttribute, 3, GL_FLOAT, GL_FALSE,
+                              sizeof(Vertex), nullptr);
+  //}
+
+  auto const normalAttribute{abcg::glGetAttribLocation(m_program, "inNormal")};
+  if (normalAttribute >= 0) {
+    abcg::glEnableVertexAttribArray(normalAttribute);
+    auto const offset{offsetof(Vertex, normal)};
+    abcg::glVertexAttribPointer(normalAttribute, 3, GL_FLOAT, GL_FALSE,
+                                sizeof(Vertex),
+                                reinterpret_cast<void *>(offset));
+  }
+
   abcg::glBindBuffer(GL_ARRAY_BUFFER, 0);
   abcg::glBindVertexArray(0);
 }
@@ -73,9 +102,18 @@ void Ground::onPaint(glm::mat4 m_ViewMatrix, glm::mat4 m_ProjMatrix) {
                                &model[0][0]);
 
       // Set color (checkerboard pattern)
-      auto const whiteOrDarkGray{(z + x) % 2 == 0 ? 1.0f : 0.1f};
-      abcg::glUniform4f(m_colorLocation, whiteOrDarkGray, whiteOrDarkGray,
-                        whiteOrDarkGray, 1.0f);
+      glm::vec4 m_color{(z + x) % 2 == 0 ? white : darkGray};
+
+      abcg::glUniform4fv(m_KaLocation, 1, &m_color.x);
+      abcg::glUniform4fv(m_KdLocation, 1, &m_Kd.x);
+      abcg::glUniform4fv(m_KsLocation, 1, &m_Ks.x);
+
+      abcg::glUniform3f(m_lightPositionLocation, m_light.x, m_light.y,
+                        m_light.z);
+
+      abcg::glUniform4fv(m_IaLocation, 1, &m_Ia.x);
+      abcg::glUniform4fv(m_IdLocation, 1, &m_Id.x);
+      abcg::glUniform4fv(m_IsLocation, 1, &m_Is.x);
 
       abcg::glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     }

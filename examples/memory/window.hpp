@@ -3,7 +3,6 @@
 
 #include "abcgOpenGL.hpp"
 #include "background.hpp"
-#include "camera.hpp"
 #include "cube.hpp"
 #include "ground.hpp"
 #include "select.hpp"
@@ -35,10 +34,11 @@ private:
 
   glm::ivec2 m_viewportSize{};
 
-  Camera m_camera;
-  int m_camSelect = 0;
+  // Matrix to change from world space to camera space
+  glm::mat4 m_viewMatrix;
 
-  std::vector<Vertex> m_vertices;
+  // Matrix to change from camera space to clip space
+  glm::mat4 m_projMatrix;
 
   bool m_restart{false};
 

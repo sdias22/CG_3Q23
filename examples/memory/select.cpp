@@ -1,6 +1,5 @@
 #include "Select.hpp"
 
-#include <iostream>
 #include <unordered_map>
 
 // Explicit specialization of std::hash for Vertex
@@ -43,13 +42,22 @@ void Select::onSetup() {
                                 sizeof(Vertex), nullptr);
   }
 
+  auto const normalAttribute{abcg::glGetAttribLocation(m_program, "inNormal")};
+  if (normalAttribute >= 0) {
+    abcg::glEnableVertexAttribArray(normalAttribute);
+    auto const offset{offsetof(Vertex, normal)};
+    abcg::glVertexAttribPointer(normalAttribute, 3, GL_FLOAT, GL_FALSE,
+                                sizeof(Vertex),
+                                reinterpret_cast<void *>(offset));
+  }
+
   // Get location of uniform variables
   m_viewMatrixLocation = abcg::glGetUniformLocation(m_program, "viewMatrix");
   m_projMatrixLocation = abcg::glGetUniformLocation(m_program, "projMatrix");
   m_modelMatrixLocation = abcg::glGetUniformLocation(m_program, "modelMatrix");
-  m_colorLocation = abcg::glGetUniformLocation(m_program, "color");
   m_normalMatrixLocation =
       abcg::glGetUniformLocation(m_program, "normalMatrix");
+  m_colorMatrixLocation = abcg::glGetUniformLocation(m_program, "color");
 
   // Light Properties
   m_lightPositionLocation =
@@ -110,8 +118,8 @@ void Select::onPaint(glm::mat4 m_ViewMatrix, glm::mat4 m_ProjMatrix) {
                            &normalMatrix[0][0]);
 
   abcg::glUniformMatrix4fv(m_modelMatrixLocation, 1, GL_FALSE, &model[0][0]);
-  abcg::glUniform4f(m_colorLocation, m_select.m_color.x, m_select.m_color.y,
-                    m_select.m_color.z, m_select.m_color.a);
+
+  abcg::glUniform4fv(m_colorMatrixLocation, 1, &m_select.m_color.x);
 
   abcg::glUniform4fv(m_KaLocation, 1, &m_Ka.x);
   abcg::glUniform4fv(m_KdLocation, 1, &m_Kd.x);

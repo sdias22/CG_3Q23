@@ -43,25 +43,23 @@ private:
   std::vector<Vertex> m_vertices;
   std::vector<GLuint> m_indices;
 
-  glm::mat4 m_viewMatrix{1.0f};
-
   // Shaders
   GLuint m_program{};
   GLint m_viewMatrixLocation{};
   GLint m_projMatrixLocation{};
   GLint m_modelMatrixLocation{};
-  GLint m_colorLocation{};
   GLint m_normalMatrixLocation{};
   GLint m_lightPositionLocation{};
+  GLint m_colorMatrixLocation{};
 
   // Material properties
   GLint m_KaLocation;
   GLint m_KdLocation;
   GLint m_KsLocation;
 
-  glm::vec4 m_Ka{0.1f, 0.1f, 0.1f, 1.0f};
-  glm::vec4 m_Kd{0.7f, 0.7f, 0.7f, 1.0f};
-  glm::vec4 m_Ks{1.0f};
+  glm::vec4 m_Ka{0.5f, 0.5f, 0.5f, 1.0f};
+  glm::vec4 m_Kd{0.0f, 0.0f, 0.0f, 1.0f};
+  glm::vec4 m_Ks{0.5f, 0.5f, 0.5f, 1.0f};
 
   // Light properties
   GLint m_IaLocation;
@@ -72,7 +70,7 @@ private:
   glm::vec4 m_Id{1.0f};
   glm::vec4 m_Is{1.0f};
 
-  glm::vec3 m_light{0.0f, -1.0f, 0.0f};
+  glm::vec3 m_light{-0.05f, 1.0f, 0.0f};
 
   // Cores utilizadas nos cubos
   glm::vec4 gray{0.3f, 0.3f, 0.3f, 1.0f};

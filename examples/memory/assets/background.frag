@@ -6,6 +6,6 @@ in vec3 fragTexCoord;
 
 out vec4 outColor;
 
-uniform samplerCube skyTex;
+uniform samplerCube m_Tex;
 
-void main() { outColor = texture(skyTex, fragTexCoord); }
+void main() { outColor = texture(m_Tex, fragTexCoord); }

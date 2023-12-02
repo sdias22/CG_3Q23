@@ -3,12 +3,11 @@
 
 void Background::onCreate() {
   auto const assetsPath{abcg::Application::getAssetsPath()};
-
-  // Create skybox program
-  auto const path{assetsPath + "background"};
-  m_program = abcg::createOpenGLProgram(
-      {{.source = path + ".vert", .stage = abcg::ShaderStage::Vertex},
-       {.source = path + ".frag", .stage = abcg::ShaderStage::Fragment}});
+  m_program =
+      abcg::createOpenGLProgram({{.source = assetsPath + "background.vert",
+                                  .stage = abcg::ShaderStage::Vertex},
+                                 {.source = assetsPath + "background.frag",
+                                  .stage = abcg::ShaderStage::Fragment}});
 
   loadTexture(assetsPath + "background/");
 
@@ -51,7 +50,7 @@ void Background::onPaint(glm::mat4 m_ViewMatrix, glm::mat4 m_ProjMatrix) {
   abcg::glUniformMatrix4fv(m_projMatrixLocation, 1, GL_FALSE,
                            &m_ProjMatrix[0][0]);
 
-  auto const m_TextureLocation{abcg::glGetUniformLocation(m_program, "skyTex")};
+  auto const m_TextureLocation{abcg::glGetUniformLocation(m_program, "m_Tex")};
 
   abcg::glUniform1i(m_TextureLocation, 0);
 

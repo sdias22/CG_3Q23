@@ -1,6 +1,5 @@
 #include "window.hpp"
 
-#include <iostream>
 #include <unordered_map>
 
 /*
@@ -45,14 +44,16 @@ void Window::onCreate() {
   abcg::glClearColor(0, 0, 0, 1);
   abcg::glEnable(GL_DEPTH_TEST);
 
+  // Câmera
+  m_viewMatrix = glm::lookAt(glm::vec3(-0.0843976f, 1.1297f, 0.992652f),
+                             glm::vec3(-0.0840492f, 0.108946f, -0.106467f),
+                             glm::vec3(-0.0175263f, 0.732629f, -0.680398f));
+
   // Cria o Tabuleiro
   m_ground.onCreate();
 
   // Cria o Fundo;
   m_background.onCreate();
-
-  // Cria as posições das Cameras
-  m_camera.onCreate();
 
   // Cria os cubos
   m_cube.onCreate();
@@ -69,16 +70,20 @@ void Window::onPaint() {
 
   abcg::glViewport(0, 0, m_viewportSize.x, m_viewportSize.y);
 
-  // Desenha o tabuleiro
-  m_ground.onPaint(m_camera.getViewMatrix(), m_camera.getProjMatrix());
+  auto const aspect{gsl::narrow<float>(m_viewportSize.x) /
+                    gsl::narrow<float>(m_viewportSize.y)};
+  m_projMatrix = glm::perspective(glm::radians(100.0f), aspect, 0.1f, 5.0f);
 
-  m_background.onPaint(m_camera.getViewMatrix(), m_camera.getProjMatrix());
+  // Desenha o tabuleiro
+  m_ground.onPaint(m_viewMatrix, m_projMatrix);
+
+  m_background.onPaint(m_viewMatrix, m_projMatrix);
 
   if (m_game != GameStatus::gameover) {
     // Desenha o seletor
-    m_select.onPaint(m_camera.getViewMatrix(), m_camera.getProjMatrix());
+    m_select.onPaint(m_viewMatrix, m_projMatrix);
     // Desenha as peças
-    m_cube.onPaint(m_camera.getViewMatrix(), m_camera.getProjMatrix());
+    m_cube.onPaint(m_viewMatrix, m_projMatrix);
   }
 }
 
@@ -91,9 +96,6 @@ void Window::onUpdate() {
   if (m_game == GameStatus::gameover) {
     return;
   }
-
-  // Atualiza a câmera para a selecionada no onPaintUI
-  m_camera.onUpdate(m_camSelect);
 
   /*
     Caso o estado do game seja "start" é desenhado o campo, os cubos coloridos
@@ -111,7 +113,7 @@ void Window::onUpdate() {
     m_cube.onState();
 
     m_timer.restart();
-    while (m_timer.elapsed() < m_tempo * 1.5f)
+    while (m_timer.elapsed() < m_tempo * 4.5f)
       ;
     m_timer.restart();
 
@@ -178,33 +180,16 @@ void Window::onUpdate() {
 void Window::onPaintUI() {
   // Menu de escolha da Câmera e botão de reinicio do jogo
   // Tamanho e Posição do Menu
-  auto const widgetSize{ImVec2(210, 70)};
-  ImGui::SetNextWindowPos(ImVec2(355, 5));
+  auto const widgetSize{ImVec2(210, 42)};
+  ImGui::SetNextWindowPos(ImVec2(m_viewportSize.x - widgetSize.x - 5, 5));
   ImGui::SetNextWindowSize(widgetSize);
 
   // Inicializa o Menu
   auto windowFlags{ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar};
-  ImGui::Begin("Camera", nullptr, windowFlags);
-
-  // ComboBox para escolha da camera
-  static std::size_t currentInd{};
-  std::vector<std::string> const comboCam{"Visão Lateral", "Vista Superior"};
-
-  if (ImGui::BeginCombo("Camera", comboCam.at(currentInd).c_str())) {
-    for (auto ind{0U}; ind < comboCam.size(); ++ind) {
-      bool const isSelected{currentInd == ind};
-      if (ImGui::Selectable(comboCam.at(ind).c_str(), isSelected)) {
-        currentInd = ind;
-      }
-      if (isSelected)
-        ImGui::SetItemDefaultFocus();
-    }
-    ImGui::EndCombo();
-  }
-  m_camSelect = currentInd;
+  ImGui::Begin("Restart", nullptr, windowFlags);
 
   // Botão para limpar a tela
-  if (ImGui::Button("Restart", ImVec2(190, 25))) {
+  if (ImGui::Button("Restart", ImVec2(195, 25))) {
     m_restart = true;
   }
 
@@ -212,9 +197,8 @@ void Window::onPaintUI() {
 
   // Bloco de texto com mensagens para o usuário
   // Tamanho e Posição do texto
-  auto const widgetSizeT{ImVec2(190, 65)};
-  ImGui::SetNextWindowPos(ImVec2((m_viewportSize.x - widgetSizeT.x) / 2,
-                                 (m_viewportSize.y - widgetSizeT.y) / 2));
+  auto const widgetSizeT{ImVec2(190, 70)};
+  ImGui::SetNextWindowPos(ImVec2((m_viewportSize.x - widgetSizeT.x) / 2, 150));
   ImGui::SetNextWindowSize(widgetSizeT);
 
   if (m_game == GameStatus::gameover && !m_restart) {
@@ -263,11 +247,7 @@ void Window::onRestart() {
   onCreate();
 }
 
-void Window::onResize(glm::ivec2 const &size) {
-  m_viewportSize = size;
-  m_camera.computeProjectionMatrix(size);
-  m_camera.sizeT = size;
-}
+void Window::onResize(glm::ivec2 const &size) { m_viewportSize = size; }
 
 void Window::onDestroy() {
   // Destruir o Tabuleiro
