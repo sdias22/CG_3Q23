@@ -22,14 +22,13 @@ private:
   GLint m_modelMatrixLocation{};
   GLint m_normalMatrixLocation{};
   GLint m_lightPositionLocation{};
-  GLint m_colorLocation{};
 
   // Material properties
   GLint m_KaLocation;
   GLint m_KdLocation;
   GLint m_KsLocation;
 
-  glm::vec4 m_Ka{0.5f, 0.5f, 0.5f, 1.0f};
+  // glm::vec4 m_Ka{0.5f, 0.5f, 0.5f, 1.0f};
   glm::vec4 m_Kd{1.0f, 1.0f, 1.0f, 1.0f};
   glm::vec4 m_Ks{1.0f, 1.0f, 1.0f, 1.0f};
 

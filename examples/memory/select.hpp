@@ -83,8 +83,6 @@ private:
   glm::vec4 white{1.0f, 1.0f, 1.0f, 1.0f};
   glm::vec4 yellow{1.0f, 0.8f, 0.0f, 1.0f};
 
-  glm::vec4 m_colorCurrent{gray};
-
   abcg::Timer m_timer;
   float m_tempo{0.05f};
 
