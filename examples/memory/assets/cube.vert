@@ -9,7 +9,6 @@ uniform mat4 projMatrix;
 uniform mat3 normalMatrix;
 
 uniform vec3 lightPosition;
-uniform vec4 lightDirWorldSpace;
 
 out vec3 fragV;
 out vec3 fragL;

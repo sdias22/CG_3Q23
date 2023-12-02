@@ -237,8 +237,8 @@ void Cube::onState() {
   }
 }
 
-// Altera o estado do cubo passado para select caso o cubo tenha o estado
 /*
+  Altera o estado do cubo passado para select caso o cubo tenha o estado
   diferente de off (ainda não selecionado e nem descoberto) e retorna true
   para caso tenha alterado o estado, e false caso contrário
 */

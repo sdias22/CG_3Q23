@@ -79,8 +79,7 @@ void Select::onSetup() {
 }
 
 /*
-  Cria o objeto de Seleção (VAO, VBO e EBO) e atualiza a cor, posição e status
-do objeto
+  Atualiza a cor, posição e status do objeto
 */
 void Select::onCreate() {
   auto const assetsPath{abcg::Application::getAssetsPath()};

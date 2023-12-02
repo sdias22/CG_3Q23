@@ -39,7 +39,7 @@ void Window::onEvent(SDL_Event const &event) {
   }
 }
 
-// Cria o programa e chama o create das demais classe para criarem os objetos
+// Limpa a tela e chama o create das demais classe para criarem os objetos
 void Window::onCreate() {
   abcg::glClearColor(0, 0, 0, 1);
   abcg::glEnable(GL_DEPTH_TEST);
@@ -98,7 +98,7 @@ void Window::onUpdate() {
   }
 
   /*
-    Caso o estado do game seja "start" é desenhado o campo, os cubos coloridos
+    Caso o estado do game seja "start" é atualizado o campo, os cubos coloridos
     e o seletor, após um intervalo de tempo é oculto as cores dos cubos e
     alterado o estado do jogo para "playing", permitando que o usuário movimente
     e selecione os cubos
@@ -152,9 +152,9 @@ void Window::onUpdate() {
   } else if (m_play == PlayStatus::decision) {
 
     /*
-      No estado Decision é chamado a função da classe Cube e caso o retorno seja
-      true é limpo o vetor que armazena as posições selecionadas.
-      Após isso é retornado o estado do game para "moving"
+      No estado Decision é chamado a função da classe Cube e limpo o vetor que
+      armazena as posições selecionadas. Após isso é retornado o estado do game
+      para "moving".
     */
     m_select.onUpdate();
 

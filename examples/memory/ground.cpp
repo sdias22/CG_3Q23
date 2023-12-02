@@ -56,11 +56,10 @@ void Ground::onCreate() {
 
   auto const positionAttribute{
       abcg::glGetAttribLocation(m_program, "inPosition")};
-  // if (positionAttribute >= 0) {
+
   abcg::glEnableVertexAttribArray(positionAttribute);
   abcg::glVertexAttribPointer(positionAttribute, 3, GL_FLOAT, GL_FALSE,
                               sizeof(Vertex), nullptr);
-  //}
 
   auto const normalAttribute{abcg::glGetAttribLocation(m_program, "inNormal")};
   if (normalAttribute >= 0) {

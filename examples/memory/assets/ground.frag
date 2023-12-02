@@ -24,7 +24,6 @@ vec4 Phong(vec3 N, vec3 L, vec3 V) {
   // Compute specular term
   float specular = 0.0;
   if (lambertian > 0.0) {
-    // vec3 R = normalize(2.0 * dot(N, L) * N - L);
     vec3 R = reflect(-L, N);
     V = normalize(V);
     float angle = max(dot(R, V), 0.0);
